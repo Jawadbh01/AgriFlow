@@ -487,7 +487,7 @@ _waitForAuth.then(async user => {
     const snap = await Promise.race([getDoc(doc(db,'users',user.uid)), timeout]);
     if (!snap.exists()) { loaderError('Account not found. Contact admin.'); return; }
     const data = snap.data();
-    if (data.role !== 'manager') { loaderError('Wrong role: ' + data.role + '. Use correct account.'); return; }
+    if (data.role !== 'manager') { loaderError('Role is: "' + data.role + '" — need "manager"'); return; }
     if (data.status === 'suspended') { loaderError('Account suspended. Contact admin.'); return; }
     ME = {uid: user.uid, ...data};
     document.getElementById('user-name').textContent = ME.name || 'Manager';
