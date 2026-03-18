@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>AgriFlow — Landlord</title>
   <meta name="theme-color" content="#0a0f0a"/>
+  <link rel="manifest" href="../manifest.json"/>
+  <link rel="apple-touch-icon" href="../images/icon-192.png"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <link rel="stylesheet" href="../css/style.css"/>
 </head>
 <body>
@@ -521,16 +526,73 @@ window.printFarmReport=function(farmId){
   const totalExp=exp.reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=harv.reduce((s,h)=>s+Number(h.landlordShare||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:600px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>${farm.name} — Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div><h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="exp">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<h2>Harvests (My Share)</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="inc">₨${Number(h.landlordShare||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:600px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>${farm.name} — Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div><h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="exp">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<h2>Harvests (My Share)</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="inc">₨${Number(h.landlordShare||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/AgriFlow/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      })
+      .catch(() => {});
+  });
+}
+</script>
+</body></html>`);
   w.document.close();
 };
 window.printFullReport=function(){
   const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.landlordShare||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>🌾 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>${myFarms.map(f=>{const e=myExpenses.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.amount||0),0);const i=myHarvests.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.landlordShare||0),0);return `<h2>🌱 ${f.name} — Profit: ₨${(i-e).toLocaleString()}</h2><div class="row"><span>Expenses</span><span class="exp">₨${e.toLocaleString()}</span></div><div class="row"><span>My Income</span><span class="inc">₨${i.toLocaleString()}</span></div>`;}).join('')}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>🌾 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>${myFarms.map(f=>{const e=myExpenses.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.amount||0),0);const i=myHarvests.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.landlordShare||0),0);return `<h2>🌱 ${f.name} — Profit: ₨${(i-e).toLocaleString()}</h2><div class="row"><span>Expenses</span><span class="exp">₨${e.toLocaleString()}</span></div><div class="row"><span>My Income</span><span class="inc">₨${i.toLocaleString()}</span></div>`;}).join('')}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/AgriFlow/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      })
+      .catch(() => {});
+  });
+}
+</script>
+</body></html>`);
   w.document.close();
 };
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/AgriFlow/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      })
+      .catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
