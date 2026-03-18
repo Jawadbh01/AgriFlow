@@ -973,25 +973,8 @@ window.printFarmReport=function(farmId){
   <div class="summary"><div class="box"><div class="lbl">EXPENSES</div><div class="val expense">₨${totalExp.toLocaleString()}</div></div><div class="box"><div class="lbl">INCOME</div><div class="val income">₨${totalInc.toLocaleString()}</div></div><div class="box"><div class="lbl">PROFIT</div><div class="val" style="color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
   <h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="expense">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">No expenses</p>'}
   <h2>Harvests</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="income">₨${Number(h.totalIncome||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">No harvests</p>'}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
-}
-</script>
+  
+
 </body></html>`);
   w.document.close();
 };
@@ -1012,25 +995,8 @@ window.printHarvestSlip=function(harvId){
   <div class="row"><span>Debt Deducted</span><strong style="color:#dc2626">-₨${Number(h.debtDeducted||0).toLocaleString()}</strong></div>
   <div class="net">Net Payment: ₨${Number(h.farmerNet||0).toLocaleString()}</div>
   <p style="text-align:center;font-size:11px;color:#666;margin-top:12px">AgriFlow · ${new Date().toLocaleDateString()}</p>
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
-}
-</script>
+  
+
 </body></html>`);
   w.document.close();
 };
@@ -1043,25 +1009,8 @@ window.printFarmerLedger=function(farmerId){
   w.document.write(`<!DOCTYPE html><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:500px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.paid{color:#16a34a}.pending{color:#dc2626}</style></head><body>
   <h1>👨‍🌾 ${f.name} — Ledger</h1><p>Total Debt: ₨${totalDebt.toLocaleString()} · Paid: ₨${paidDebt.toLocaleString()}</p>
   <h2>All Debts</h2>${debts.map(d=>`<div class="row"><span>${d.date} — ${d.reason||'Debt'}</span><span class="${d.status==='paid'?'paid':'pending'}">₨${Number(d.amount||0).toLocaleString()} (${d.status})</span></div>`).join('')||'<p>No debts</p>'}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
-}
-</script>
+  
+
 </body></html>`);
   w.document.close();
 };
@@ -1180,26 +1129,8 @@ window.printFullReport=function(){
     const farm=myFarms.find(fm=>fm.id===f.farmId);
     return `<div class="row"><span>${f.name} (${farm?.name||'—'})</span><span class="${debt>0?'exp':'inc'}">${debt>0?'₨'+debt.toLocaleString()+' owed':'No debt'}</span></div>`;
   }).join('')}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
   
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
-}
-</script>
+
 </body></html>`);
   w.document.close();
 };
@@ -1405,47 +1336,15 @@ window.printLedger = function() {
     <div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${profit>=0?'#16a34a':'#dc2626'}">₨${profit.toLocaleString()}</div></div>
   </div>
   ${rows.map(r=>`<div class="row"><span>${r.date} &nbsp; ${r.desc} &nbsp; <em style="color:#888">${r.farm}</em></span><span class="${r.type==='harvest'?'inc':r.type==='debt'?'debt':'exp'}">${r.amount>=0?'+':''}₨${Math.abs(r.amount).toLocaleString()}</span></div>`).join('')}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
   
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
-}
-</script>
+
 </body></html>`);
   w.document.close();
 };
 </script>
-
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
+  navigator.serviceWorker.register('/AgriFlow/sw.js').catch(() => {});
 }
 </script>
 </body>
