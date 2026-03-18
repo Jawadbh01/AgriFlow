@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>AgriFlow — Setup</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+    .setup-wrap { width:100%; max-width:420px; }
+    .setup-brand { text-align:center; margin-bottom:28px; }
+    .setup-icon { width:64px;height:64px;background:var(--primary);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px; }
+    .setup-name { font-size:24px; font-weight:800; }
+    .setup-tag  { font-size:12px; color:var(--muted); margin-top:4px; }
+    .setup-card { background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px; }
+    .setup-title { font-size:17px; font-weight:800; margin-bottom:4px; }
+    .setup-sub   { font-size:13px; color:var(--muted); margin-bottom:20px; }
+    .secret-banner {
+      background:var(--warning-dim); border:1px solid rgba(251,191,36,0.2);
+      border-radius:var(--radius-sm); padding:10px 14px;
+      font-size:12px; color:var(--warning); font-weight:600; margin-bottom:18px;
+    }
+  </style>
+</head>
+<body>
+<div class="setup-wrap">
+  <div class="setup-brand">
+    <div class="setup-icon">🌾</div>
+    <div class="setup-name">AgriFlow</div>
+    <div class="setup-tag">First Time Setup</div>
+  </div>
+
+  <div class="setup-card">
+    <div class="setup-title">Create Admin Account</div>
+    <div class="setup-sub">This can only be done once. Keep credentials safe.</div>
+
+    <div class="secret-banner">🔐 Setup Key required — only share with system owner</div>
+
+    <div class="alert" id="setup-alert"></div>
+
+    <div class="form-group">
+      <label class="form-label">Setup Key</label>
+      <input class="form-input" type="password" id="setup-key" placeholder="Enter setup key"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <input class="form-input" id="admin-name" placeholder="Muhammad Jawad"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="admin-email" placeholder="admin@agriflow.com"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="admin-pass" placeholder="Min 8 characters"/>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="setup-btn" onclick="doSetup()">
+      ✅ Create Admin Account
+    </button>
+  </div>
+</div>
+
+<div id="toast-root"></div>
+<div id="page-loader" class="page-loader hidden">
+  <div class="spinner"></div>
+  <div class="loader-msg">Creating account...</div>
+</div>
+
+<script type="module">
+import { auth, db } from "./js/firebase.js";
+import { initTheme, toast, showAlert, clearAlert, showLoader, hideLoader } from "./js/ui.js";
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+initTheme();
+
+const SETUP_KEY = 'agriflow2024';
+
+window.doSetup = async function() {
+  const key   = document.getElementById('setup-key').value.trim();
+  const name  = document.getElementById('admin-name').value.trim();
+  const email = document.getElementById('admin-email').value.trim();
+  const pass  = document.getElementById('admin-pass').value;
+  const btn   = document.getElementById('setup-btn');
+
+  clearAlert('setup-alert');
+
+  if (key !== SETUP_KEY) {
+    showAlert('setup-alert', '❌ Invalid setup key.'); return;
+  }
+  if (!name || !email || !pass) {
+    showAlert('setup-alert', '⚠️ All fields are required.'); return;
+  }
+  if (pass.length < 8) {
+    showAlert('setup-alert', '⚠️ Password must be at least 8 characters.'); return;
+  }
+
+  btn.disabled = true; btn.textContent = '⏳ Creating...';
+  showLoader('Creating admin account...');
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      uid:       cred.user.uid,
+      name,
+      email,
+      role:      'admin',
+      status:    'active',
+      createdAt: serverTimestamp(),
+    });
+
+    hideLoader();
+    showAlert('setup-alert', '✅ Admin created! Redirecting to login...', 'success');
+    setTimeout(() => window.location.href = '/AgriFlow/index.html', 2000);
+
+  } catch(e) {
+    hideLoader();
+    const MSGS = {
+      'auth/email-already-in-use': '❌ Email already registered.',
+      'auth/weak-password':        '❌ Password too weak.',
+      'auth/invalid-email':        '❌ Invalid email.',
+    };
+    showAlert('setup-alert', MSGS[e.code] || '❌ ' + e.message);
+    btn.disabled = false; btn.textContent = '✅ Create Admin Account';
+  }
+};
+</script>
+</body>
+</html>
