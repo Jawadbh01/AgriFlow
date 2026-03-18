@@ -42,6 +42,7 @@
       </div>
       <div class="topbar-right">
         <div class="online-dot" id="online-dot"></div>
+        <button class="btn btn-ghost btn-sm" onclick="openModal('modal-create-manager')">➕ Manager</button>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ Landlord</button>
       </div>
     </header>
@@ -77,6 +78,7 @@
       <div data-tab-content="managers" class="hidden">
         <div class="section-header">
           <div><div class="section-title">👨‍💼 Managers</div><div class="section-sub" id="mg-sub"></div></div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-manager')">➕ Add</button>
         </div>
         <div class="card">
           <div class="card-header"><input class="form-input" style="max-width:100%" id="mg-search" placeholder="🔍 Search name or email..." oninput="filterManagers(this.value)"/></div>
@@ -118,6 +120,22 @@
     <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ll-phone" placeholder="03001234567"/></div>
     <div class="form-group"><label class="form-label">Password * (min 8 chars)</label><input class="form-input" type="password" id="ll-pass" placeholder="••••••••"/></div>
     <button class="btn btn-primary btn-full" id="ll-btn" onclick="createLandlord()">✅ Create Landlord</button>
+  </div>
+</div>
+
+<!-- Modal: Create Manager -->
+<div class="modal-overlay" id="modal-create-manager">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">👨‍💼 Create Manager</div><button class="modal-close" onclick="closeModal('modal-create-manager')">✕</button></div>
+    <div class="alert" id="mg-alert"></div>
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="mg-name" placeholder="Ali Hassan"/></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="mg-email" placeholder="ali@email.com"/></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="mg-phone" placeholder="03001234567"/></div>
+    <div class="form-group"><label class="form-label">Password * (min 8 chars)</label><input class="form-input" type="password" id="mg-pass" placeholder="••••••••"/></div>
+    <div class="form-group"><label class="form-label">Assign to Landlord *</label>
+      <select class="form-select" id="mg-landlord"><option value="">Select landlord...</option></select>
+    </div>
+    <button class="btn btn-primary btn-full" id="mg-btn" onclick="createManager()">✅ Create Manager</button>
   </div>
 </div>
 
@@ -345,6 +363,10 @@ async function loadAll() {
     renderLandlords(allLandlords);
     renderManagers(allManagers);
     renderAllUsers(allUsers);
+    // Populate landlord dropdown in create manager modal
+    document.getElementById('mg-landlord').innerHTML =
+      '<option value="">Select landlord...</option>' +
+      allLandlords.map(l=>`<option value="${l.uid}">${l.name}</option>`).join('');
   } catch(e) {
     toast('Failed to load: ' + e.message, 'error');
   }
