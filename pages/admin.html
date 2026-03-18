@@ -293,18 +293,25 @@ function ini(n){return(n||'?').charAt(0).toUpperCase();}
 window.doLogout=async function(){if(!confirm('Logout?'))return;await signOut(auth);window.location.href='../index.html';};
 
 // ── Auth Guard ────────────────────────────────────────────
-onAuthStateChanged(auth,async user=>{
-  if(!user){window.location.href='../index.html';return;}
-  try{
-    const snap=await getDoc(doc(db,'users',user.uid));
-    if(!snap.exists()||snap.data().role!=='admin'||snap.data().status==='suspended'){window.location.href='../index.html';return;}
-    ME={uid:user.uid,...snap.data()};
-    document.getElementById('user-name').textContent=ME.name||'Admin';
-    document.getElementById('user-avatar').textContent=ini(ME.name);
+const _waitForAuth = new Promise(resolve => {
+  const unsub = onAuthStateChanged(auth, user => { unsub(); resolve(user); });
+});
+_waitForAuth.then(async user => {
+  if (!user) { window.location.replace('../index.html'); return; }
+  try {
+    const timeout = new Promise((_,reject) => setTimeout(() => reject(new Error('Connection timeout')), 12000));
+    const snap = await Promise.race([getDoc(doc(db,'users',user.uid)), timeout]);
+    if (!snap.exists()) { loaderErr('Account not found. Contact admin.'); return; }
+    const data = snap.data();
+    if (data.role !== 'admin') { loaderErr('Wrong role: ' + data.role); return; }
+    if (data.status === 'suspended') { loaderErr('Account suspended.'); return; }
+    ME = {uid: user.uid, ...data};
+    document.getElementById('user-name').textContent = ME.name || 'Admin';
+    document.getElementById('user-avatar').textContent = ini(ME.name);
     showSkeleton();
     await loadAll();
     hideLoader();
-  }catch(e){loaderErr(e.message);}
+  } catch(e) { loaderErr(e.message); }
 });
 
 // ── Load ──────────────────────────────────────────────────
@@ -522,23 +529,9 @@ window.deleteUser=async function(uid,name){
   catch(e){toast('❌ '+e.message,'error');}
 };
 </script>
-
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
+  navigator.serviceWorker.register('/AgriFlow/sw.js').catch(() => {});
 }
 </script>
 </body>
