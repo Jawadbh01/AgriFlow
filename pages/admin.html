@@ -438,4 +438,113 @@ window.showMenu = function(btn, uid) {
   if (!u) return;
   const sus = u.status === 'suspended';
   showActionMenu(btn, [
-    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) }
+    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) },
+    { icon:'🔑', label:'Reset Password', action: () => openResetModal(u.email) },
+    'divider',
+    { icon: sus?'✅':'🚫', label: sus?'Activate':'Suspend',
+      action: () => toggleSuspend(uid, u.status, u.name) },
+    'divider',
+    { icon:'🗑️', label:'Delete', danger: true, action: () => deleteUser(uid, u.name) },
+  ]);
+};
+
+// ── Create Landlord ────────────────────────────────────────
+window.createLandlord = async function() {
+  const name  = document.getElementById('ll-name').value.trim();
+  const email = document.getElementById('ll-email').value.trim();
+  const pass  = document.getElementById('ll-pass').value;
+  const phone = document.getElementById('ll-phone').value.trim();
+  const btn   = document.getElementById('ll-btn');
+
+  clearAlert('ll-alert');
+  if (!name || !email || !pass) { showAlert('ll-alert','⚠️ Name, email and password are required.'); return; }
+  if (pass.length < 8)          { showAlert('ll-alert','⚠️ Password must be at least 8 characters.'); return; }
+
+  btn.disabled = true; btn.textContent = '⏳ Creating...';
+
+  const result = await createUserSecondary(email, pass, { name, email, phone, role: 'landlord' });
+
+  if (result.success) {
+    toast(`✅ ${name} created as Landlord!`);
+    closeModal('modal-create-landlord');
+    ['ll-name','ll-email','ll-pass','ll-phone'].forEach(id => document.getElementById(id).value = '');
+    await loadAll();
+  } else {
+    const MSGS = {
+      'auth/email-already-in-use': '❌ Email already registered.',
+      'auth/weak-password':        '❌ Password too weak.',
+      'auth/invalid-email':        '❌ Invalid email address.',
+    };
+    showAlert('ll-alert', MSGS[result.error?.code] || '❌ ' + result.error?.message);
+  }
+  btn.disabled = false; btn.textContent = '✅ Create Landlord';
+};
+
+// ── Edit User ──────────────────────────────────────────────
+function openEditModal(uid) {
+  const u = allUsers.find(x => x.uid === uid);
+  if (!u) return;
+  document.getElementById('edit-uid').value   = uid;
+  document.getElementById('edit-name').value  = u.name || '';
+  document.getElementById('edit-phone').value = u.phone || '';
+  document.getElementById('edit-status').value = u.status || 'active';
+  clearAlert('edit-alert');
+  openModal('modal-edit-user');
+}
+window.saveEdit = async function() {
+  const uid    = document.getElementById('edit-uid').value;
+  const name   = document.getElementById('edit-name').value.trim();
+  const phone  = document.getElementById('edit-phone').value.trim();
+  const status = document.getElementById('edit-status').value;
+  if (!name) { showAlert('edit-alert','⚠️ Name is required.'); return; }
+  try {
+    await updateDoc(doc(db,'users',uid), { name, phone, status, updatedAt: serverTimestamp() });
+    toast('✅ User updated!');
+    closeModal('modal-edit-user');
+    await loadAll();
+  } catch(e) { showAlert('edit-alert','❌ '+e.message); }
+};
+
+// ── Suspend/Activate ───────────────────────────────────────
+async function toggleSuspend(uid, current, name) {
+  const newStatus = current === 'suspended' ? 'active' : 'suspended';
+  if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Activate'} ${name}?`)) return;
+  try {
+    await updateDoc(doc(db,'users',uid), { status: newStatus, updatedAt: serverTimestamp() });
+    toast(`${newStatus === 'suspended' ? '🚫 Suspended' : '✅ Activated'}: ${name}`);
+    await loadAll();
+  } catch(e) { toast('❌ '+e.message,'error'); }
+}
+
+// ── Reset Password ─────────────────────────────────────────
+function openResetModal(email) {
+  activeEmail = email;
+  document.getElementById('reset-email-label').textContent = email;
+  clearAlert('reset-alert');
+  openModal('modal-reset');
+}
+window.sendReset = async function() {
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true; btn.textContent = '⏳ Sending...';
+  try {
+    const { sendPasswordResetEmail: reset } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    await sendPasswordResetEmail(auth, activeEmail);
+    showAlert('reset-alert','✅ Reset email sent!','success');
+    toast('✅ Reset email sent!');
+    setTimeout(() => closeModal('modal-reset'), 2000);
+  } catch(e) { showAlert('reset-alert','❌ '+e.message); }
+  btn.disabled = false; btn.textContent = '📧 Send Email';
+};
+
+// ── Delete User ────────────────────────────────────────────
+async function deleteUser(uid, name) {
+  if (!confirm(`Delete ${name}? This removes Firestore record only.`)) return;
+  try {
+    await deleteDoc(doc(db,'users',uid));
+    toast(`🗑️ ${name} deleted`,'warning');
+    await loadAll();
+  } catch(e) { toast('❌ '+e.message,'error'); }
+}
+</script>
+</body>
+</html>
