@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>AgriFlow — Admin</title>
+  <meta name="theme-color" content="#0a0f0a"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🌾</div>
+      <div>
+        <div class="brand-name">AgriFlow</div>
+        <div class="brand-tag">ADMIN</div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">A</div>
+      <div>
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role">⚙️ Administrator</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Dashboard</div>
+      <button class="nav-item active" data-tab-btn="overview">
+        <span class="nav-icon">📊</span>Overview
+      </button>
+
+      <div class="nav-section">Users</div>
+      <button class="nav-item" data-tab-btn="landlords">
+        <span class="nav-icon">👑</span>Landlords
+      </button>
+      <button class="nav-item" data-tab-btn="managers">
+        <span class="nav-icon">👨‍💼</span>Managers
+      </button>
+      <button class="nav-item" data-tab-btn="allusers">
+        <span class="nav-icon">👥</span>All Users
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm btn-full mb-8" data-theme-btn onclick="uiToggleTheme()">☀️ Light</button>
+      <button class="btn btn-outline btn-sm btn-full" onclick="doLogout()">🚪 Logout</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="offline-bar" id="offline-bar">📵 Offline — data may be outdated</div>
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger">☰</button>
+        <div>
+          <div class="page-title" id="page-title">Overview</div>
+          <div class="page-subtitle">Admin Panel</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="online-dot" title="Online"></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ Landlord</button>
+      </div>
+    </header>
+
+    <div class="page-content">
+
+      <!-- ── OVERVIEW ────────────────────────────────── -->
+      <div data-tab-content="overview">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Platform Overview</div>
+            <div class="section-sub" id="overview-sub">Loading...</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ New Landlord</button>
+        </div>
+        <div class="stats-grid mb-16" id="stats-grid">
+          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
+          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">👑 Landlords</span>
+            <button class="btn btn-ghost btn-sm" onclick="switchTab('landlords')">View All →</button>
+          </div>
+          <div id="overview-landlords"></div>
+        </div>
+      </div>
+
+      <!-- ── LANDLORDS ────────────────────────────────── -->
+      <div data-tab-content="landlords" class="hidden">
+        <div class="section-header">
+          <div>
+            <div class="section-title">👑 Landlords</div>
+            <div class="section-sub" id="ll-sub">0 landlords</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ Add</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <input class="form-input" style="max-width:220px" id="ll-search"
+                   placeholder="🔍 Search..." oninput="filterLandlords(this.value)"/>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
+              <tbody id="ll-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MANAGERS ─────────────────────────────────── -->
+      <div data-tab-content="managers" class="hidden">
+        <div class="section-header">
+          <div>
+            <div class="section-title">👨‍💼 Managers</div>
+            <div class="section-sub" id="mg-sub">0 managers</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <input class="form-input" style="max-width:220px" id="mg-search"
+                   placeholder="🔍 Search..." oninput="filterManagers(this.value)"/>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Landlord</th><th>Status</th><th></th></tr></thead>
+              <tbody id="mg-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ALL USERS ────────────────────────────────── -->
+      <div data-tab-content="allusers" class="hidden">
+        <div class="section-header">
+          <div><div class="section-title">👥 All Users</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px">
+            <input class="form-input" style="max-width:180px" id="usr-search"
+                   placeholder="🔍 Search..." oninput="filterUsers()"/>
+            <select class="form-select" style="width:auto" id="usr-role-filter" onchange="filterUsers()">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="landlord">Landlord</option>
+              <option value="manager">Manager</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Created</th></tr></thead>
+              <tbody id="usr-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Action Menu -->
+<div class="action-menu" id="action-menu"></div>
+
+<!-- ── MODAL: Create Landlord ─────────────────────── -->
+<div class="modal-overlay" id="modal-create-landlord">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👑 Create Landlord</div>
+      <button class="modal-close" onclick="closeModal('modal-create-landlord')">✕</button>
+    </div>
+    <div class="alert" id="ll-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" id="ll-name" placeholder="Muhammad Ahmad"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email *</label>
+      <input class="form-input" type="email" id="ll-email" placeholder="ahmad@email.com"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone</label>
+      <input class="form-input" id="ll-phone" placeholder="03001234567"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password *</label>
+      <input class="form-input" type="password" id="ll-pass" placeholder="Min 8 characters"/>
+    </div>
+    <button class="btn btn-primary btn-full" id="ll-btn" onclick="createLandlord()">
+      ✅ Create Landlord
+    </button>
+  </div>
+</div>
+
+<!-- ── MODAL: Edit User ───────────────────────────── -->
+<div class="modal-overlay" id="modal-edit-user">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit User</div>
+      <button class="modal-close" onclick="closeModal('modal-edit-user')">✕</button>
+    </div>
+    <div class="alert" id="edit-alert"></div>
+    <input type="hidden" id="edit-uid"/>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input class="form-input" id="edit-name"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone</label>
+      <input class="form-input" id="edit-phone"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="edit-status">
+        <option value="active">✅ Active</option>
+        <option value="suspended">🚫 Suspended</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveEdit()">💾 Save Changes</button>
+  </div>
+</div>
+
+<!-- ── MODAL: Reset Password ──────────────────────── -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Reset Password</div>
+      <button class="modal-close" onclick="closeModal('modal-reset')">✕</button>
+    </div>
+    <div style="background:var(--warning-dim);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--warning);font-weight:600;margin-bottom:16px">
+      ⚠️ A reset link will be emailed to the user.
+    </div>
+    <div style="font-size:14px;margin-bottom:16px">Send to: <strong id="reset-email-label"></strong></div>
+    <div class="alert" id="reset-alert"></div>
+    <div class="flex gap-8">
+      <button class="btn btn-primary btn-full" id="reset-btn" onclick="sendReset()">📧 Send Email</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-reset')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-root"></div>
+<div id="page-loader" class="page-loader">
+  <div class="spinner"></div>
+  <div class="loader-msg">Loading...</div>
+</div>
+
+<script type="module">
+import { auth, db }  from "../js/firebase.js";
+import { getUserDoc, createUserSecondary, logout, ROLE_ROUTES } from "../js/auth.js";
+import { initTheme, toggleTheme, toast, showAlert, clearAlert,
+         openModal, closeModal, setupModals, initSidebar,
+         initTabs, switchTab, showActionMenu, hideLoader,
+         loaderError, initOnlineStatus, fmt } from "../js/ui.js";
+import { onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { collection, getDocs, doc, updateDoc, deleteDoc,
+         serverTimestamp, query, where }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// expose to onclick attributes
+window.uiToggleTheme   = toggleTheme;
+window.openModal       = openModal;
+window.closeModal      = closeModal;
+window.switchTab       = switchTab;
+window.doLogout        = logout;
+
+initTheme();
+initSidebar();
+setupModals();
+initOnlineStatus();
+initTabs(tab => {
+  document.getElementById('page-title').textContent =
+    {overview:'Overview',landlords:'Landlords',managers:'Managers',allusers:'All Users'}[tab] || tab;
+});
+
+let ME = null;
+let allUsers = [], allLandlords = [], allManagers = [];
+let activeUid = '', activeEmail = '';
+
+// ── Auth Guard ─────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = '../index.html'; return; }
+
+  try {
+    const data = await getUserDoc(user.uid);
+    if (!data || data.role !== 'admin' || data.status === 'suspended') {
+      window.location.href = '../index.html'; return;
+    }
+    ME = { uid: user.uid, ...data };
+    document.getElementById('user-name').textContent  = ME.name || 'Admin';
+    document.getElementById('user-avatar').textContent = fmt.initial(ME.name);
+    await loadAll();
+    hideLoader();
+  } catch(e) {
+    loaderError(e.message);
+  }
+});
+
+// ── Load All Data ──────────────────────────────────────────
+async function loadAll() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    allUsers     = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    allLandlords = allUsers.filter(u => u.role === 'landlord');
+    allManagers  = allUsers.filter(u => u.role === 'manager');
+    renderOverview();
+    renderLandlords(allLandlords);
+    renderManagers(allManagers);
+    renderAllUsers(allUsers);
+  } catch(e) {
+    toast('Failed to load data: ' + e.message, 'error');
+  }
+}
+
+// ── Overview ───────────────────────────────────────────────
+function renderOverview() {
+  const active = allUsers.filter(u => u.status !== 'suspended').length;
+  document.getElementById('overview-sub').textContent =
+    `${allUsers.length} total users · ${active} active`;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon">👑</div>
+      <div class="stat-label">Landlords</div>
+      <div class="stat-value">${allLandlords.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">👨‍💼</div>
+      <div class="stat-label">Managers</div>
+      <div class="stat-value">${allManagers.length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-label">Active</div>
+      <div class="stat-value" style="color:var(--primary)">${active}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🚫</div>
+      <div class="stat-label">Suspended</div>
+      <div class="stat-value" style="color:var(--danger)">${allUsers.length - active}</div>
+    </div>`;
+
+  document.getElementById('overview-landlords').innerHTML =
+    allLandlords.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">👑</div><div class="empty-title">No landlords yet</div><div class="empty-sub">Create one using the button above</div></div>`
+    : allLandlords.slice(0, 5).map(l => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-weight:700;font-size:13px">${l.name}</div>
+            <div class="font-xs text-muted">${l.email}</div>
+          </div>
+          <span class="badge ${l.status==='suspended'?'badge-red':'badge-green'}">${l.status||'active'}</span>
+        </div>`).join('');
+}
+
+// ── Landlords Table ────────────────────────────────────────
+function renderLandlords(list) {
+  document.getElementById('ll-sub').textContent = `${list.length} landlord${list.length!==1?'s':''}`;
+  document.getElementById('ll-table').innerHTML = list.length === 0
+    ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No landlords yet</td></tr>`
+    : list.map(u => `
+        <tr>
+          <td><span class="badge badge-gold font-xs">${u.uid.slice(0,6)}</span></td>
+          <td style="font-weight:700">${u.name}</td>
+          <td class="text-muted font-sm">${u.email}</td>
+          <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm" data-menu-trigger
+              onclick="showMenu(this,'${u.uid}')">⋮</button>
+          </td>
+        </tr>`).join('');
+}
+window.filterLandlords = v =>
+  renderLandlords(v ? allLandlords.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allLandlords);
+
+// ── Managers Table ─────────────────────────────────────────
+function renderManagers(list) {
+  document.getElementById('mg-sub').textContent = `${list.length} manager${list.length!==1?'s':''}`;
+  document.getElementById('mg-table').innerHTML = list.length === 0
+    ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No managers yet</td></tr>`
+    : list.map(u => {
+        const ll = allLandlords.find(l => l.uid === u.landlordId);
+        return `<tr>
+          <td><span class="badge badge-blue font-xs">${u.uid.slice(0,6)}</span></td>
+          <td style="font-weight:700">${u.name}</td>
+          <td class="text-muted font-sm">${u.email}</td>
+          <td class="font-sm">${ll ? ll.name : '—'}</td>
+          <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm" data-menu-trigger
+              onclick="showMenu(this,'${u.uid}')">⋮</button>
+          </td>
+        </tr>`;}).join('');
+}
+window.filterManagers = v =>
+  renderManagers(v ? allManagers.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allManagers);
+
+// ── All Users Table ────────────────────────────────────────
+function renderAllUsers(list) {
+  const RC = { admin:'badge-gray', landlord:'badge-gold', manager:'badge-blue' };
+  document.getElementById('usr-table').innerHTML = list.length === 0
+    ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No users</td></tr>`
+    : list.map(u => `<tr>
+        <td style="font-weight:700">${u.name}<br><span class="font-xs text-muted">${u.email}</span></td>
+        <td><span class="badge ${RC[u.role]||'badge-gray'}">${u.role}</span></td>
+        <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
+        <td class="text-muted font-xs">${fmt.date(u.createdAt)}</td>
+      </tr>`).join('');
+}
+window.filterUsers = function() {
+  const v = document.getElementById('usr-search').value.toLowerCase();
+  const r = document.getElementById('usr-role-filter').value;
+  let list = allUsers;
+  if (v) list = list.filter(u => (u.name+u.email).toLowerCase().includes(v));
+  if (r) list = list.filter(u => u.role === r);
+  renderAllUsers(list);
+};
+
+// ── Action Menu ────────────────────────────────────────────
+window.showMenu = function(btn, uid) {
+  const u = allUsers.find(x => x.uid === uid);
+  if (!u) return;
+  const sus = u.status === 'suspended';
+  showActionMenu(btn, [
+    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) },
+    { icon:'🔑', label:'Reset Password', action: () => openResetModal(u.email) },
+    'divider',
+    { icon: sus?'✅':'🚫', label: sus?'Activate':'Suspend',
+      action: () => toggleSuspend(uid, u.status, u.name) },
+    'divider',
+    { icon:'🗑️', label:'Delete', danger: true, action: () => deleteUser(uid, u.name) },
+  ]);
+};
+
+// ── Create Landlord ────────────────────────────────────────
+window.createLandlord = async function() {
+  const name  = document.getElementById('ll-name').value.trim();
+  const email = document.getElementById('ll-email').value.trim();
+  const pass  = document.getElementById('ll-pass').value;
+  const phone = document.getElementById('ll-phone').value.trim();
+  const btn   = document.getElementById('ll-btn');
+
+  clearAlert('ll-alert');
+  if (!name || !email || !pass) { showAlert('ll-alert','⚠️ Name, email and password are required.'); return; }
+  if (pass.length < 8)          { showAlert('ll-alert','⚠️ Password must be at least 8 characters.'); return; }
+
+  btn.disabled = true; btn.textContent = '⏳ Creating...';
+
+  const result = await createUserSecondary(email, pass, { name, email, phone, role: 'landlord' });
+
+  if (result.success) {
+    toast(`✅ ${name} created as Landlord!`);
+    closeModal('modal-create-landlord');
+    ['ll-name','ll-email','ll-pass','ll-phone'].forEach(id => document.getElementById(id).value = '');
+    await loadAll();
+  } else {
+    const MSGS = {
+      'auth/email-already-in-use': '❌ Email already registered.',
+      'auth/weak-password':        '❌ Password too weak.',
+      'auth/invalid-email':        '❌ Invalid email address.',
+    };
+    showAlert('ll-alert', MSGS[result.error?.code] || '❌ ' + result.error?.message);
+  }
+  btn.disabled = false; btn.textContent = '✅ Create Landlord';
+};
+
+// ── Edit User ──────────────────────────────────────────────
+function openEditModal(uid) {
+  const u = allUsers.find(x => x.uid === uid);
+  if (!u) return;
+  document.getElementById('edit-uid').value   = uid;
+  document.getElementById('edit-name').value  = u.name || '';
+  document.getElementById('edit-phone').value = u.phone || '';
+  document.getElementById('edit-status').value = u.status || 'active';
+  clearAlert('edit-alert');
+  openModal('modal-edit-user');
+}
+window.saveEdit = async function() {
+  const uid    = document.getElementById('edit-uid').value;
+  const name   = document.getElementById('edit-name').value.trim();
+  const phone  = document.getElementById('edit-phone').value.trim();
+  const status = document.getElementById('edit-status').value;
+  if (!name) { showAlert('edit-alert','⚠️ Name is required.'); return; }
+  try {
+    await updateDoc(doc(db,'users',uid), { name, phone, status, updatedAt: serverTimestamp() });
+    toast('✅ User updated!');
+    closeModal('modal-edit-user');
+    await loadAll();
+  } catch(e) { showAlert('edit-alert','❌ '+e.message); }
+};
+
+// ── Suspend/Activate ───────────────────────────────────────
+async function toggleSuspend(uid, current, name) {
+  const newStatus = current === 'suspended' ? 'active' : 'suspended';
+  if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Activate'} ${name}?`)) return;
+  try {
+    await updateDoc(doc(db,'users',uid), { status: newStatus, updatedAt: serverTimestamp() });
+    toast(`${newStatus === 'suspended' ? '🚫 Suspended' : '✅ Activated'}: ${name}`);
+    await loadAll();
+  } catch(e) { toast('❌ '+e.message,'error'); }
+}
+
+// ── Reset Password ─────────────────────────────────────────
+function openResetModal(email) {
+  activeEmail = email;
+  document.getElementById('reset-email-label').textContent = email;
+  clearAlert('reset-alert');
+  openModal('modal-reset');
+}
+window.sendReset = async function() {
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true; btn.textContent = '⏳ Sending...';
+  try {
+    const { sendPasswordResetEmail: reset } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    await sendPasswordResetEmail(auth, activeEmail);
+    showAlert('reset-alert','✅ Reset email sent!','success');
+    toast('✅ Reset email sent!');
+    setTimeout(() => closeModal('modal-reset'), 2000);
+  } catch(e) { showAlert('reset-alert','❌ '+e.message); }
+  btn.disabled = false; btn.textContent = '📧 Send Email';
+};
+
+// ── Delete User ────────────────────────────────────────────
+async function deleteUser(uid, name) {
+  if (!confirm(`Delete ${name}? This removes Firestore record only.`)) return;
+  try {
+    await deleteDoc(doc(db,'users',uid));
+    toast(`🗑️ ${name} deleted`,'warning');
+    await loadAll();
+  } catch(e) { toast('❌ '+e.message,'error'); }
+}
+</script>
+</body>
+</html>
