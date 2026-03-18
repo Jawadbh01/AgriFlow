@@ -42,8 +42,7 @@
       </div>
       <div class="topbar-right">
         <div class="online-dot" id="online-dot"></div>
-        <button class="btn btn-ghost btn-sm" onclick="openM('modal-create-manager')">➕ Manager</button>
-        <button class="btn btn-primary btn-sm" onclick="openM('modal-create-landlord')">➕ Landlord</button>
+
       </div>
     </header>
 
@@ -65,7 +64,6 @@
       <div data-tab-content="landlords" class="hidden">
         <div class="section-header">
           <div><div class="section-title">👑 Landlords</div><div class="section-sub" id="ll-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openM('modal-create-landlord')">➕ Add</button>
         </div>
         <div class="card">
           <div class="card-header"><input class="form-input" style="width:100%" id="ll-search" placeholder="🔍 Search..." oninput="filterLL(this.value)"/></div>
@@ -168,6 +166,9 @@
 
 <div id="toast-root"></div>
 <div id="page-loader" class="page-loader">
+  <div class="loader-brand">
+    <div class="loader-icon">🌾</div>
+  </div>
   <div class="spinner"></div>
   <div class="loader-msg">Loading...</div>
 </div>
@@ -213,7 +214,22 @@ function setAlert(id,msg,type='error'){const el=document.getElementById(id);if(e
 function clrAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
 
 // ── Loader ────────────────────────────────────────────────
-function hideLoader(){document.getElementById('page-loader').classList.add('hidden');}
+function hideLoader(){const el=document.getElementById('page-loader');if(el){el.classList.add('hidden');}}
+
+// ── Skeleton Loaders ──────────────────────────────────────
+function showSkeleton() {
+  const statsGrid = document.getElementById('stats-grid');
+  if (statsGrid) {
+    statsGrid.innerHTML = `
+      ${[1,2,3,4].map(()=>`
+        <div class="skeleton-stat">
+          <div class="skeleton skeleton-text" style="width:40px;height:40px;border-radius:10px"></div>
+          <div class="skeleton skeleton-text" style="width:60%;margin-top:4px"></div>
+          <div class="skeleton skeleton-title" style="width:40%;margin-top:6px"></div>
+        </div>`).join('')}`;
+  }
+}
+
 function loaderErr(msg){document.getElementById('page-loader').innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:var(--danger);font-weight:700;margin-bottom:8px">Error</div><div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div><button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button></div>`;}
 
 // ── Modal — named openM/closeM to avoid any conflicts ─────
@@ -275,6 +291,7 @@ onAuthStateChanged(auth,async user=>{
     ME={uid:user.uid,...snap.data()};
     document.getElementById('user-name').textContent=ME.name||'Admin';
     document.getElementById('user-avatar').textContent=ini(ME.name);
+    showSkeleton();
     await loadAll();
     hideLoader();
   }catch(e){loaderErr(e.message);}
