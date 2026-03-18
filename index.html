@@ -7,211 +7,189 @@
   <meta name="theme-color" content="#0a0f0a"/>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
-    body { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-    .login-wrap { width:100%; max-width:400px; }
-    .login-brand {
-      text-align:center; margin-bottom:32px;
-    }
-    .login-brand-icon {
-      width:64px; height:64px; background:var(--primary);
-      border-radius:18px; display:flex; align-items:center;
-      justify-content:center; font-size:30px; margin:0 auto 14px;
-    }
-    .login-brand-name { font-size:26px; font-weight:800; }
-    .login-brand-tag  { font-size:12px; color:var(--muted); margin-top:4px; }
-    .login-card {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:var(--radius-lg); padding:28px 24px;
-    }
-    .login-title { font-size:18px; font-weight:800; margin-bottom:4px; }
-    .login-sub   { font-size:13px; color:var(--muted); margin-bottom:24px; }
-    .pass-wrap { position:relative; }
-    .pass-wrap .form-input { padding-right:48px; }
-    .pass-toggle {
-      position:absolute; right:12px; top:50%; transform:translateY(-50%);
-      background:none; border:none; color:var(--muted);
-      font-size:18px; cursor:pointer; padding:4px;
-    }
-    .login-footer { text-align:center; margin-top:20px; font-size:12px; color:var(--muted); }
-    .theme-toggle-wrap { text-align:center; margin-top:16px; }
+    body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+    .login-wrap{width:100%;max-width:400px;}
+    .login-brand{text-align:center;margin-bottom:32px;}
+    .login-brand-icon{width:72px;height:72px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;}
+    .login-brand-name{font-size:28px;font-weight:800;}
+    .login-brand-tag{font-size:13px;color:var(--muted);margin-top:4px;}
+    .login-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px;}
+    .login-title{font-size:18px;font-weight:800;margin-bottom:4px;}
+    .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+    .pass-wrap{position:relative;}
+    .pass-wrap .form-input{padding-right:48px;}
+    .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;}
+    .login-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--muted);}
+    .theme-row{text-align:center;margin-top:14px;}
   </style>
 </head>
 <body>
-  <div class="login-wrap">
-    <div class="login-brand">
-      <div class="login-brand-icon">🌾</div>
-      <div class="login-brand-name">AgriFlow</div>
-      <div class="login-brand-tag">Farm Management System</div>
-    </div>
-
-    <div class="login-card">
-      <div class="login-title">Welcome back</div>
-      <div class="login-sub">Sign in to your account</div>
-
-      <div class="alert" id="login-alert"></div>
-
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" type="email" id="email"
-               placeholder="you@example.com" autocomplete="email"/>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <div class="pass-wrap">
-          <input class="form-input" type="password" id="password"
-                 placeholder="••••••••" autocomplete="current-password" id="pass-input"/>
-          <button class="pass-toggle" id="pass-toggle" type="button" tabindex="-1">👁️</button>
-        </div>
-      </div>
-
-      <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">
-        Sign In
-      </button>
-
-      <div class="login-footer">
-        AgriFlow V3 · Secure Farm Management
-      </div>
-    </div>
-
-    <div class="theme-toggle-wrap">
-      <button class="btn btn-ghost btn-sm" data-theme-btn onclick="toggleTheme()">☀️ Light</button>
-    </div>
+<div class="login-wrap">
+  <div class="login-brand">
+    <div class="login-brand-icon">🌾</div>
+    <div class="login-brand-name">AgriFlow</div>
+    <div class="login-brand-tag">Farm Management System</div>
   </div>
-
-  <div id="toast-root"></div>
-
-  <!-- Full-screen loader for redirect -->
-  <div id="page-loader" class="page-loader hidden">
-    <div class="spinner"></div>
-    <div class="loader-msg">Signing in...</div>
+  <div class="login-card">
+    <div class="login-title">Welcome back</div>
+    <div class="login-sub">Sign in to your account</div>
+    <div class="alert" id="login-alert"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div class="pass-wrap">
+        <input class="form-input" type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+        <button class="pass-toggle" id="pass-toggle" type="button">👁️</button>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-footer">AgriFlow V3 · Secure Farm Management</div>
   </div>
+  <div class="theme-row">
+    <button class="btn btn-ghost btn-sm" onclick="toggleTheme()" id="theme-btn">☀️ Light</button>
+  </div>
+</div>
+
+<div id="toast-root"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut }
+import { getAuth, signInWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const CONFIG = {apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
-const app  = initializeApp(CONFIG);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const CONFIG = {
+  apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",
+  authDomain:"farmledger-e85e3.firebaseapp.com",
+  projectId:"farmledger-e85e3",
+  storageBucket:"farmledger-e85e3.firebasestorage.app",
+  messagingSenderId:"922324809308",
+  appId:"1:922324809308:web:05c015ce12e55034e99899"
+};
 
-// ── Helpers ───────────────────────────────────────────────
 const ROUTES = {
   admin:    'pages/admin.html',
   landlord: 'pages/landlord.html',
   manager:  'pages/manager.html'
 };
 
-function initTheme(){document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');}
-window.toggleTheme=function(){const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
-function showAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
-function clearAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
-function resetBtn(){const b=document.getElementById('login-btn');b.disabled=false;b.textContent='Sign In';}
+// ── Init ──────────────────────────────────────────────────
+const app  = initializeApp(CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
+// ── Theme ─────────────────────────────────────────────────
+function initTheme() {
+  const t = localStorage.getItem('af_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+}
+window.toggleTheme = function() {
+  const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('af_theme', n);
+  document.getElementById('theme-btn').textContent = n === 'dark' ? '☀️ Light' : '🌙 Dark';
+};
 initTheme();
 
-// ── Password toggle ────────────────────────────────────────
-document.getElementById('pass-toggle').addEventListener('click',()=>{
-  const inp=document.getElementById('password');
-  inp.type=inp.type==='password'?'text':'password';
+// ── UI Helpers ────────────────────────────────────────────
+function showErr(msg) {
+  const el = document.getElementById('login-alert');
+  el.textContent = msg;
+  el.className = 'alert show error';
+}
+function clearErr() {
+  document.getElementById('login-alert').className = 'alert';
+}
+function setBusy(msg) {
+  const b = document.getElementById('login-btn');
+  b.disabled = true;
+  b.textContent = msg;
+}
+function setReady() {
+  const b = document.getElementById('login-btn');
+  b.disabled = false;
+  b.textContent = 'Sign In';
+}
+
+// ── Password toggle ───────────────────────────────────────
+document.getElementById('pass-toggle').addEventListener('click', () => {
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
 });
 
-// ── Enter key ──────────────────────────────────────────────
-['email','password'].forEach(id=>
-  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();})
-);
+// ── Enter key ─────────────────────────────────────────────
+document.getElementById('email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('password').focus(); });
+document.getElementById('password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
-// ── Auto-redirect if already logged in ────────────────────
-// Use a flag so this only runs once and never interferes with login
-let redirecting = false;
-onAuthStateChanged(auth, async user => {
-  if (redirecting || !user) return;
-  // Only auto-redirect if user is NOT actively trying to login
-  const btn = document.getElementById('login-btn');
-  if (btn.disabled) return; // login in progress — don't interfere
-  try {
-    redirecting = true;
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.exists()) {
-      const d = snap.data();
-      if (d.role && d.status !== 'suspended' && ROUTES[d.role]) {
-        window.location.href = ROUTES[d.role];
-        return;
-      }
-    }
-    await signOut(auth);
-    redirecting = false;
-  } catch {
-    redirecting = false;
-  }
-});
-
-// ── Login ──────────────────────────────────────────────────
+// ── LOGIN — no onAuthStateChanged, no race conditions ─────
 window.doLogin = async function() {
   const email = document.getElementById('email').value.trim();
   const pass  = document.getElementById('password').value;
-  const btn   = document.getElementById('login-btn');
 
-  clearAlert('login-alert');
-  if (!email || !pass) { showAlert('login-alert','⚠️ Please enter email and password.'); return; }
+  clearErr();
+  if (!email || !pass) { showErr('⚠️ Please enter email and password.'); return; }
 
-  btn.disabled = true;
-  btn.textContent = '⏳ Signing in...';
-  redirecting = true; // block onAuthStateChanged from firing
+  setBusy('⏳ Signing in...');
 
   try {
-    // Step 1: Auth
+    // Step 1: Firebase Auth login
     const cred = await signInWithEmailAndPassword(auth, email, pass);
+    const uid  = cred.user.uid;
 
-    // Step 2: Firestore — with explicit error message if it fails
+    setBusy('⏳ Loading account...');
+
+    // Step 2: Fetch Firestore user doc
     let snap;
     try {
-      snap = await getDoc(doc(db, 'users', cred.user.uid));
-    } catch (firestoreErr) {
+      snap = await getDoc(doc(db, 'users', uid));
+    } catch (err) {
       await signOut(auth);
-      showAlert('login-alert', '❌ Could not load account: ' + firestoreErr.message);
-      resetBtn(); redirecting = false; return;
+      showErr('❌ Database error: ' + err.message);
+      setReady(); return;
     }
 
+    // Step 3: Validate doc
     if (!snap.exists()) {
       await signOut(auth);
-      showAlert('login-alert', '❌ Account not set up. Contact admin.');
-      resetBtn(); redirecting = false; return;
+      showErr('❌ Account not found in system. Contact admin.');
+      setReady(); return;
     }
 
     const data = snap.data();
 
     if (data.status === 'suspended') {
       await signOut(auth);
-      showAlert('login-alert', '🚫 Account suspended. Contact admin.');
-      resetBtn(); redirecting = false; return;
+      showErr('🚫 Your account is suspended. Contact admin.');
+      setReady(); return;
     }
 
     if (!data.role || !ROUTES[data.role]) {
       await signOut(auth);
-      showAlert('login-alert', `❌ Unknown role: "${data.role}". Contact admin.`);
-      resetBtn(); redirecting = false; return;
+      showErr('❌ Role "' + (data.role||'none') + '" not recognized. Contact admin.');
+      setReady(); return;
     }
 
-    // Step 3: Redirect
-    btn.textContent = '✅ Redirecting...';
-    window.location.href = ROUTES[data.role];
+    // Step 4: Redirect — no going back
+    setBusy('✅ Opening dashboard...');
+    window.location.replace(ROUTES[data.role]);
 
   } catch (e) {
+    await signOut(auth).catch(()=>{});
     const MSGS = {
       'auth/user-not-found':     '❌ No account with this email.',
-      'auth/wrong-password':     '❌ Incorrect password.',
+      'auth/wrong-password':     '❌ Wrong password.',
       'auth/invalid-email':      '❌ Invalid email format.',
       'auth/invalid-credential': '❌ Email or password is incorrect.',
       'auth/too-many-requests':  '⚠️ Too many attempts. Try again later.',
-      'auth/network-request-failed': '📶 No internet connection.',
+      'auth/network-request-failed': '📶 No internet. Check your connection.',
     };
-    showAlert('login-alert', MSGS[e.code] || '❌ ' + e.message);
-    resetBtn(); redirecting = false;
+    showErr(MSGS[e.code] || '❌ ' + e.message);
+    setReady();
   }
 };
 </script>
