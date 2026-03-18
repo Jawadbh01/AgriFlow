@@ -9,229 +9,141 @@
 </head>
 <body>
 <div class="app">
-
-  <!-- Sidebar overlay -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
-
-  <!-- Sidebar -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-icon">🌾</div>
-      <div>
-        <div class="brand-name">AgriFlow</div>
-        <div class="brand-tag">ADMIN</div>
-      </div>
+      <div><div class="brand-name">AgriFlow</div><div class="brand-tag">ADMIN</div></div>
     </div>
-
     <div class="sidebar-user">
       <div class="user-avatar" id="user-avatar">A</div>
-      <div>
-        <div class="user-name" id="user-name">Admin</div>
-        <div class="user-role">⚙️ Administrator</div>
-      </div>
+      <div><div class="user-name" id="user-name">Admin</div><div class="user-role">⚙️ Administrator</div></div>
     </div>
-
     <nav class="sidebar-nav">
       <div class="nav-section">Dashboard</div>
-      <button class="nav-item active" data-tab-btn="overview">
-        <span class="nav-icon">📊</span>Overview
-      </button>
-
+      <button class="nav-item active" data-tab-btn="overview"><span class="nav-icon">📊</span>Overview</button>
       <div class="nav-section">Users</div>
-      <button class="nav-item" data-tab-btn="landlords">
-        <span class="nav-icon">👑</span>Landlords
-      </button>
-      <button class="nav-item" data-tab-btn="managers">
-        <span class="nav-icon">👨‍💼</span>Managers
-      </button>
-      <button class="nav-item" data-tab-btn="allusers">
-        <span class="nav-icon">👥</span>All Users
-      </button>
+      <button class="nav-item" data-tab-btn="landlords"><span class="nav-icon">👑</span>Landlords</button>
+      <button class="nav-item" data-tab-btn="managers"><span class="nav-icon">👨‍💼</span>Managers</button>
+      <button class="nav-item" data-tab-btn="allusers"><span class="nav-icon">👥</span>All Users</button>
     </nav>
-
     <div class="sidebar-footer">
-      <button class="btn btn-ghost btn-sm btn-full mb-8" data-theme-btn onclick="uiToggleTheme()">☀️ Light</button>
+      <button class="btn btn-ghost btn-sm btn-full mb-8" onclick="toggleTheme()">🌙 Theme</button>
       <button class="btn btn-outline btn-sm btn-full" onclick="doLogout()">🚪 Logout</button>
     </div>
   </aside>
 
-  <!-- Main -->
   <div class="main">
-    <div class="offline-bar" id="offline-bar">📵 Offline — data may be outdated</div>
-
+    <div class="offline-bar" id="offline-bar">📵 Offline</div>
     <header class="topbar">
       <div class="topbar-left">
         <button class="hamburger" id="hamburger">☰</button>
-        <div>
-          <div class="page-title" id="page-title">Overview</div>
-          <div class="page-subtitle">Admin Panel</div>
-        </div>
+        <div><div class="page-title" id="page-title">Overview</div><div class="page-subtitle">Admin Panel</div></div>
       </div>
       <div class="topbar-right">
-        <div class="online-dot" title="Online"></div>
+        <div class="online-dot" id="online-dot"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ Landlord</button>
       </div>
     </header>
 
     <div class="page-content">
 
-      <!-- ── OVERVIEW ────────────────────────────────── -->
+      <!-- OVERVIEW -->
       <div data-tab-content="overview">
         <div class="section-header">
-          <div>
-            <div class="section-title">Platform Overview</div>
-            <div class="section-sub" id="overview-sub">Loading...</div>
-          </div>
+          <div><div class="section-title">Platform Overview</div><div class="section-sub" id="overview-sub"></div></div>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ New Landlord</button>
         </div>
-        <div class="stats-grid mb-16" id="stats-grid">
-          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
-          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
-          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
-          <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-label">Loading</div><div class="stat-value">—</div></div>
-        </div>
+        <div class="stats-grid mb-16" id="stats-grid"></div>
         <div class="card">
-          <div class="card-header">
-            <span class="card-title">👑 Landlords</span>
-            <button class="btn btn-ghost btn-sm" onclick="switchTab('landlords')">View All →</button>
-          </div>
+          <div class="card-header"><span class="card-title">👑 Recent Landlords</span><button class="btn btn-ghost btn-sm" onclick="switchTab('landlords')">View All →</button></div>
           <div id="overview-landlords"></div>
         </div>
       </div>
 
-      <!-- ── LANDLORDS ────────────────────────────────── -->
+      <!-- LANDLORDS -->
       <div data-tab-content="landlords" class="hidden">
         <div class="section-header">
-          <div>
-            <div class="section-title">👑 Landlords</div>
-            <div class="section-sub" id="ll-sub">0 landlords</div>
-          </div>
+          <div><div class="section-title">👑 Landlords</div><div class="section-sub" id="ll-sub"></div></div>
           <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-landlord')">➕ Add</button>
         </div>
         <div class="card">
-          <div class="card-header">
-            <input class="form-input" style="max-width:220px" id="ll-search"
-                   placeholder="🔍 Search..." oninput="filterLandlords(this.value)"/>
-          </div>
-          <div id="ll-table"></div>
+          <div class="card-header"><input class="form-input" style="max-width:100%" id="ll-search" placeholder="🔍 Search name or email..." oninput="filterLandlords(this.value)"/></div>
+          <div id="ll-list"></div>
         </div>
       </div>
 
-      <!-- ── MANAGERS ─────────────────────────────────── -->
+      <!-- MANAGERS -->
       <div data-tab-content="managers" class="hidden">
         <div class="section-header">
-          <div>
-            <div class="section-title">👨‍💼 Managers</div>
-            <div class="section-sub" id="mg-sub">0 managers</div>
-          </div>
+          <div><div class="section-title">👨‍💼 Managers</div><div class="section-sub" id="mg-sub"></div></div>
         </div>
         <div class="card">
-          <div class="card-header">
-            <input class="form-input" style="max-width:220px" id="mg-search"
-                   placeholder="🔍 Search..." oninput="filterManagers(this.value)"/>
-          </div>
-          <div id="mg-table"></div>
+          <div class="card-header"><input class="form-input" style="max-width:100%" id="mg-search" placeholder="🔍 Search name or email..." oninput="filterManagers(this.value)"/></div>
+          <div id="mg-list"></div>
         </div>
       </div>
 
-      <!-- ── ALL USERS ────────────────────────────────── -->
+      <!-- ALL USERS -->
       <div data-tab-content="allusers" class="hidden">
-        <div class="section-header">
-          <div><div class="section-title">👥 All Users</div></div>
-        </div>
+        <div class="section-header"><div><div class="section-title">👥 All Users</div></div></div>
         <div class="card">
           <div class="card-header" style="flex-wrap:wrap;gap:8px">
-            <input class="form-input" style="max-width:180px" id="usr-search"
-                   placeholder="🔍 Search..." oninput="filterUsers()"/>
-            <select class="form-select" style="width:auto" id="usr-role-filter" onchange="filterUsers()">
+            <input class="form-input" style="flex:1;min-width:120px" id="usr-search" placeholder="🔍 Search..." oninput="filterUsers()"/>
+            <select class="form-select" style="width:auto" id="usr-role" onchange="filterUsers()">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="landlord">Landlord</option>
               <option value="manager">Manager</option>
             </select>
           </div>
-          <div id="usr-table"></div>
+          <div id="usr-list"></div>
         </div>
       </div>
 
-    </div><!-- /page-content -->
-  </div><!-- /main -->
-</div><!-- /app -->
+    </div>
+  </div>
+</div>
 
 <!-- Action Menu -->
 <div class="action-menu" id="action-menu"></div>
 
-<!-- ── MODAL: Create Landlord ─────────────────────── -->
+<!-- Modal: Create Landlord -->
 <div class="modal-overlay" id="modal-create-landlord">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">👑 Create Landlord</div>
-      <button class="modal-close" onclick="closeModal('modal-create-landlord')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">👑 Create Landlord</div><button class="modal-close" onclick="closeModal('modal-create-landlord')">✕</button></div>
     <div class="alert" id="ll-alert"></div>
-    <div class="form-group">
-      <label class="form-label">Full Name *</label>
-      <input class="form-input" id="ll-name" placeholder="Muhammad Ahmad"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Email *</label>
-      <input class="form-input" type="email" id="ll-email" placeholder="ahmad@email.com"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Phone</label>
-      <input class="form-input" id="ll-phone" placeholder="03001234567"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Password *</label>
-      <input class="form-input" type="password" id="ll-pass" placeholder="Min 8 characters"/>
-    </div>
-    <button class="btn btn-primary btn-full" id="ll-btn" onclick="createLandlord()">
-      ✅ Create Landlord
-    </button>
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="ll-name" placeholder="Muhammad Ahmad"/></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="ll-email" placeholder="ahmad@email.com"/></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ll-phone" placeholder="03001234567"/></div>
+    <div class="form-group"><label class="form-label">Password * (min 8 chars)</label><input class="form-input" type="password" id="ll-pass" placeholder="••••••••"/></div>
+    <button class="btn btn-primary btn-full" id="ll-btn" onclick="createLandlord()">✅ Create Landlord</button>
   </div>
 </div>
 
-<!-- ── MODAL: Edit User ───────────────────────────── -->
-<div class="modal-overlay" id="modal-edit-user">
+<!-- Modal: Edit -->
+<div class="modal-overlay" id="modal-edit">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">✏️ Edit User</div>
-      <button class="modal-close" onclick="closeModal('modal-edit-user')">✕</button>
-    </div>
+    <div class="modal-header"><div class="modal-title">✏️ Edit User</div><button class="modal-close" onclick="closeModal('modal-edit')">✕</button></div>
     <div class="alert" id="edit-alert"></div>
     <input type="hidden" id="edit-uid"/>
-    <div class="form-group">
-      <label class="form-label">Name</label>
-      <input class="form-input" id="edit-name"/>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="edit-name"/></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="edit-phone"/></div>
+    <div class="form-group"><label class="form-label">Status</label>
+      <select class="form-select" id="edit-status"><option value="active">✅ Active</option><option value="suspended">🚫 Suspended</option></select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Phone</label>
-      <input class="form-input" id="edit-phone"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Status</label>
-      <select class="form-select" id="edit-status">
-        <option value="active">✅ Active</option>
-        <option value="suspended">🚫 Suspended</option>
-      </select>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="saveEdit()">💾 Save Changes</button>
+    <button class="btn btn-primary btn-full" onclick="saveEdit()">💾 Save</button>
   </div>
 </div>
 
-<!-- ── MODAL: Reset Password ──────────────────────── -->
+<!-- Modal: Reset -->
 <div class="modal-overlay" id="modal-reset">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">🔑 Reset Password</div>
-      <button class="modal-close" onclick="closeModal('modal-reset')">✕</button>
-    </div>
-    <div style="background:var(--warning-dim);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--warning);font-weight:600;margin-bottom:16px">
-      ⚠️ A reset link will be emailed to the user.
-    </div>
-    <div style="font-size:14px;margin-bottom:16px">Send to: <strong id="reset-email-label"></strong></div>
+    <div class="modal-header"><div class="modal-title">🔑 Reset Password</div><button class="modal-close" onclick="closeModal('modal-reset')">✕</button></div>
+    <div style="background:var(--warning-dim);border-radius:var(--radius-sm);padding:12px;font-size:13px;color:var(--warning);font-weight:600;margin-bottom:16px">⚠️ A reset link will be emailed to the user.</div>
+    <p style="font-size:14px;margin-bottom:16px">Send to: <strong id="reset-label"></strong></p>
     <div class="alert" id="reset-alert"></div>
-    <div class="flex gap-8">
+    <div style="display:flex;gap:8px">
       <button class="btn btn-primary btn-full" id="reset-btn" onclick="sendReset()">📧 Send Email</button>
       <button class="btn btn-outline" onclick="closeModal('modal-reset')">Cancel</button>
     </div>
@@ -245,49 +157,176 @@
 </div>
 
 <script type="module">
-import { auth, db }  from "../js/firebase.js";
-import { getUserDoc, createUserSecondary, logout, ROLE_ROUTES } from "../js/auth.js";
-import { initTheme, toggleTheme, toast, showAlert, clearAlert,
-         openModal, closeModal, setupModals, initSidebar,
-         initTabs, switchTab, showActionMenu, hideLoader,
-         loaderError, initOnlineStatus, fmt } from "../js/ui.js";
-import { onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { collection, getDocs, doc, updateDoc, deleteDoc,
-         serverTimestamp, query, where }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ── Firebase (inline — no local imports) ──────────────────
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut,
+         createUserWithEmailAndPassword,
+         sendPasswordResetEmail }     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc,
+         updateDoc, deleteDoc, collection,
+         getDocs, serverTimestamp }   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// expose to onclick attributes
-window.uiToggleTheme   = toggleTheme;
-window.openModal       = openModal;
-window.closeModal      = closeModal;
-window.switchTab       = switchTab;
-window.doLogout        = logout;
+const CONFIG = {
+  apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",
+  authDomain:"farmledger-e85e3.firebaseapp.com",
+  projectId:"farmledger-e85e3",
+  storageBucket:"farmledger-e85e3.firebasestorage.app",
+  messagingSenderId:"922324809308",
+  appId:"1:922324809308:web:05c015ce12e55034e99899"
+};
+const app  = initializeApp(CONFIG);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-initTheme();
-initSidebar();
-setupModals();
-initOnlineStatus();
-initTabs(tab => {
-  document.getElementById('page-title').textContent =
-    {overview:'Overview',landlords:'Landlords',managers:'Managers',allusers:'All Users'}[tab] || tab;
-});
-
+// ── State ─────────────────────────────────────────────────
 let ME = null;
 let allUsers = [], allLandlords = [], allManagers = [];
-let activeUid = '', activeEmail = '';
+let activeEmail = '', activeUid = '';
 
-// ── Auth Guard ─────────────────────────────────────────────
+// ── Theme ─────────────────────────────────────────────────
+function initTheme() {
+  const t = localStorage.getItem('af_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+}
+window.toggleTheme = function() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('af_theme', next);
+};
+initTheme();
+
+// ── Toast ─────────────────────────────────────────────────
+function toast(msg, type='success') {
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${{success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'}[type]}</span><span>${msg}</span>`;
+  root.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3500);
+}
+
+// ── Alert ─────────────────────────────────────────────────
+function showAlert(id, msg, type='error') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg; el.className = `alert show ${type}`;
+}
+function clearAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.className = 'alert';
+}
+
+// ── Loader ────────────────────────────────────────────────
+function hideLoader() { document.getElementById('page-loader').classList.add('hidden'); }
+function loaderError(msg) {
+  document.getElementById('page-loader').innerHTML = `
+    <div style="text-align:center;padding:24px">
+      <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div style="color:var(--danger);font-size:15px;font-weight:700;margin-bottom:8px">Error</div>
+      <div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div>
+      <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button>
+    </div>`;
+}
+
+// ── Modal ─────────────────────────────────────────────────
+window.openModal  = id => document.getElementById(id)?.classList.add('open');
+window.closeModal = id => document.getElementById(id)?.classList.remove('open');
+document.querySelectorAll('.modal-overlay').forEach(m =>
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
+);
+
+// ── Sidebar ───────────────────────────────────────────────
+document.getElementById('hamburger').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+});
+document.getElementById('sidebar-overlay').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+const TAB_TITLES = { overview:'Overview', landlords:'Landlords', managers:'Managers', allusers:'All Users' };
+window.switchTab = function(tab) {
+  document.querySelectorAll('[data-tab-btn]').forEach(b => b.classList.toggle('active', b.dataset.tabBtn === tab));
+  document.querySelectorAll('[data-tab-content]').forEach(c => c.classList.toggle('hidden', c.dataset.tabContent !== tab));
+  document.getElementById('page-title').textContent = TAB_TITLES[tab] || tab;
+  closeSidebar();
+};
+document.querySelectorAll('[data-tab-btn]').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tabBtn))
+);
+
+// ── Online status ─────────────────────────────────────────
+function updateOnline() {
+  const on = navigator.onLine;
+  document.getElementById('online-dot').classList.toggle('off', !on);
+  document.getElementById('offline-bar').classList.toggle('show', !on);
+}
+window.addEventListener('online',  updateOnline);
+window.addEventListener('offline', updateOnline);
+updateOnline();
+
+// ── Action Menu ───────────────────────────────────────────
+let activeMenu = null;
+function showMenu(btn, uid) {
+  const u = allUsers.find(x => x.uid === uid);
+  if (!u) return;
+  const menu = document.getElementById('action-menu');
+  const sus = u.status === 'suspended';
+  menu.innerHTML = `
+    <button class="action-menu-item" onclick="openEditModal('${uid}')">✏️ Edit</button>
+    <button class="action-menu-item" onclick="openResetModal('${u.email}')">🔑 Reset Password</button>
+    <div class="action-menu-divider"></div>
+    <button class="action-menu-item" onclick="toggleSuspend('${uid}','${u.status}','${u.name}')">${sus?'✅ Activate':'🚫 Suspend'}</button>
+    <div class="action-menu-divider"></div>
+    <button class="action-menu-item danger" onclick="deleteUser('${uid}','${u.name}')">🗑️ Delete</button>`;
+  const r = btn.getBoundingClientRect();
+  let left = r.right - 190, top = r.bottom + 4;
+  if (left < 8) left = 8;
+  if (top + 220 > window.innerHeight) top = r.top - 220;
+  menu.style.cssText = `left:${left}px;top:${top}px`;
+  menu.classList.add('open');
+  activeMenu = menu;
+}
+window.showMenu = showMenu;
+document.addEventListener('click', e => {
+  if (activeMenu && !e.target.closest('.action-menu') && !e.target.closest('[onclick*="showMenu"]'))
+    activeMenu.classList.remove('open');
+});
+
+// ── Format helpers ────────────────────────────────────────
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('en-PK', { day:'numeric', month:'short', year:'numeric' });
+}
+function initial(name) { return (name || '?').charAt(0).toUpperCase(); }
+
+// ── Logout ────────────────────────────────────────────────
+window.doLogout = async function() {
+  if (!confirm('Logout?')) return;
+  await signOut(auth);
+  window.location.href = '../index.html';
+};
+
+// ── Auth Guard ────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = '../index.html'; return; }
-
   try {
-    const data = await getUserDoc(user.uid);
-    if (!data || data.role !== 'admin' || data.status === 'suspended') {
-      window.location.href = '../index.html'; return;
-    }
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) { window.location.href = '../index.html'; return; }
+    const data = snap.data();
+    if (data.role !== 'admin' || data.status === 'suspended') { window.location.href = '../index.html'; return; }
     ME = { uid: user.uid, ...data };
-    document.getElementById('user-name').textContent  = ME.name || 'Admin';
-    document.getElementById('user-avatar').textContent = fmt.initial(ME.name);
+    document.getElementById('user-name').textContent   = ME.name || 'Admin';
+    document.getElementById('user-avatar').textContent = initial(ME.name);
     await loadAll();
     hideLoader();
   } catch(e) {
@@ -295,7 +334,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// ── Load All Data ──────────────────────────────────────────
+// ── Load Data ─────────────────────────────────────────────
 async function loadAll() {
   try {
     const snap = await getDocs(collection(db, 'users'));
@@ -307,190 +346,140 @@ async function loadAll() {
     renderManagers(allManagers);
     renderAllUsers(allUsers);
   } catch(e) {
-    toast('Failed to load data: ' + e.message, 'error');
+    toast('Failed to load: ' + e.message, 'error');
   }
 }
 
-// ── Overview ───────────────────────────────────────────────
-function renderOverview() {
-  const active = allUsers.filter(u => u.status !== 'suspended').length;
-  document.getElementById('overview-sub').textContent =
-    `${allUsers.length} total users · ${active} active`;
-
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-icon">👑</div>
-      <div class="stat-label">Landlords</div>
-      <div class="stat-value">${allLandlords.length}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">👨‍💼</div>
-      <div class="stat-label">Managers</div>
-      <div class="stat-value">${allManagers.length}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">✅</div>
-      <div class="stat-label">Active</div>
-      <div class="stat-value" style="color:var(--primary)">${active}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon">🚫</div>
-      <div class="stat-label">Suspended</div>
-      <div class="stat-value" style="color:var(--danger)">${allUsers.length - active}</div>
+// ── User Row HTML ─────────────────────────────────────────
+function userRow(u, avatarColor, avatarBg, showLandlord) {
+  const ll = showLandlord ? allLandlords.find(l => l.uid === u.landlordId) : null;
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1">
+        <div style="width:40px;height:40px;border-radius:10px;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-weight:800;color:${avatarColor};font-size:16px;flex-shrink:0">${initial(u.name)}</div>
+        <div style="min-width:0">
+          <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+          <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
+          ${ll ? `<div style="font-size:11px;color:var(--primary);margin-top:1px">👑 ${ll.name}</div>` : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:8px">
+        <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
+        <button class="btn btn-ghost btn-sm" onclick="showMenu(this,'${u.uid}')">⋮</button>
+      </div>
     </div>`;
-
-  document.getElementById('overview-landlords').innerHTML =
-    allLandlords.length === 0
-    ? `<div class="empty-state"><div class="empty-icon">👑</div><div class="empty-title">No landlords yet</div><div class="empty-sub">Create one using the button above</div></div>`
-    : allLandlords.slice(0, 5).map(l => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)">
-          <div>
-            <div style="font-weight:700;font-size:13px">${l.name}</div>
-            <div class="font-xs text-muted">${l.email}</div>
-          </div>
-          <span class="badge ${l.status==='suspended'?'badge-red':'badge-green'}">${l.status||'active'}</span>
-        </div>`).join('');
 }
 
-// ── Landlords Cards ────────────────────────────────────────
+// ── Render Overview ───────────────────────────────────────
+function renderOverview() {
+  const active = allUsers.filter(u => u.status !== 'suspended').length;
+  document.getElementById('overview-sub').textContent = `${allUsers.length} users · ${active} active`;
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">👑</div><div class="stat-label">Landlords</div><div class="stat-value">${allLandlords.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">👨‍💼</div><div class="stat-label">Managers</div><div class="stat-value">${allManagers.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-label">Active</div><div class="stat-value" style="color:var(--primary)">${active}</div></div>
+    <div class="stat-card"><div class="stat-icon">🚫</div><div class="stat-label">Suspended</div><div class="stat-value" style="color:var(--danger)">${allUsers.length - active}</div></div>`;
+  document.getElementById('overview-landlords').innerHTML = allLandlords.length === 0
+    ? `<div class="empty-state"><div class="empty-icon">👑</div><div class="empty-title">No landlords yet</div><div class="empty-sub">Create one above</div></div>`
+    : allLandlords.slice(0,5).map(u => userRow(u,'var(--primary)','var(--primary-dim)',false)).join('');
+}
+
+// ── Render Landlords ──────────────────────────────────────
 function renderLandlords(list) {
   document.getElementById('ll-sub').textContent = `${list.length} landlord${list.length!==1?'s':''}`;
-  document.getElementById('ll-table').innerHTML = list.length === 0
+  document.getElementById('ll-list').innerHTML = list.length === 0
     ? `<div class="empty-state"><div class="empty-icon">👑</div><div class="empty-title">No landlords yet</div></div>`
-    : list.map(u => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-dim);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);font-size:15px;flex-shrink:0">${fmt.initial(u.name)}</div>
-            <div style="min-width:0">
-              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
-              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
-            <button class="btn btn-ghost btn-sm" data-menu-trigger onclick="showMenu(this,'${u.uid}')">⋮</button>
-          </div>
-        </div>`).join('');
+    : list.map(u => userRow(u,'var(--primary)','var(--primary-dim)',false)).join('');
 }
 window.filterLandlords = v =>
   renderLandlords(v ? allLandlords.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allLandlords);
 
-// ── Managers Cards ─────────────────────────────────────────
+// ── Render Managers ───────────────────────────────────────
 function renderManagers(list) {
   document.getElementById('mg-sub').textContent = `${list.length} manager${list.length!==1?'s':''}`;
-  document.getElementById('mg-table').innerHTML = list.length === 0
+  document.getElementById('mg-list').innerHTML = list.length === 0
     ? `<div class="empty-state"><div class="empty-icon">👨‍💼</div><div class="empty-title">No managers yet</div></div>`
-    : list.map(u => {
-        const ll = allLandlords.find(l => l.uid === u.landlordId);
-        return `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <div style="width:38px;height:38px;border-radius:10px;background:rgba(96,165,250,0.12);border:1.5px solid rgba(96,165,250,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--info);font-size:15px;flex-shrink:0">${fmt.initial(u.name)}</div>
-            <div style="min-width:0">
-              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
-              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
-              ${ll ? `<div style="font-size:11px;color:var(--primary);margin-top:1px">👑 ${ll.name}</div>` : ''}
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
-            <button class="btn btn-ghost btn-sm" data-menu-trigger onclick="showMenu(this,'${u.uid}')">⋮</button>
-          </div>
-        </div>`;}).join('');
+    : list.map(u => userRow(u,'var(--info)','rgba(96,165,250,0.12)',true)).join('');
 }
 window.filterManagers = v =>
   renderManagers(v ? allManagers.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allManagers);
 
-// ── All Users Cards ────────────────────────────────────────
+// ── Render All Users ──────────────────────────────────────
 function renderAllUsers(list) {
   const RC = { admin:'badge-gray', landlord:'badge-gold', manager:'badge-blue' };
   const RI = { admin:'⚙️', landlord:'👑', manager:'👨‍💼' };
-  document.getElementById('usr-table').innerHTML = list.length === 0
+  document.getElementById('usr-list').innerHTML = list.length === 0
     ? `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No users</div></div>`
     : list.map(u => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <div style="width:38px;height:38px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${RI[u.role]||'👤'}</div>
-            <div style="min-width:0">
-              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
-              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
-              <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt.date(u.createdAt)}</div>
-            </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1">
+          <div style="width:40px;height:40px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${RI[u.role]||'👤'}</div>
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.name}</div>
+            <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.email}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmtDate(u.createdAt)}</div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
-            <span class="badge ${RC[u.role]||'badge-gray'}">${u.role}</span>
-            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
-          </div>
-        </div>`).join('');
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:8px">
+          <span class="badge ${RC[u.role]||'badge-gray'}">${u.role}</span>
+          <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
+        </div>
+      </div>`).join('');
 }
 window.filterUsers = function() {
   const v = document.getElementById('usr-search').value.toLowerCase();
-  const r = document.getElementById('usr-role-filter').value;
+  const r = document.getElementById('usr-role').value;
   let list = allUsers;
   if (v) list = list.filter(u => (u.name+u.email).toLowerCase().includes(v));
   if (r) list = list.filter(u => u.role === r);
   renderAllUsers(list);
 };
 
-// ── Action Menu ────────────────────────────────────────────
-window.showMenu = function(btn, uid) {
-  const u = allUsers.find(x => x.uid === uid);
-  if (!u) return;
-  const sus = u.status === 'suspended';
-  showActionMenu(btn, [
-    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) },
-    { icon:'🔑', label:'Reset Password', action: () => openResetModal(u.email) },
-    'divider',
-    { icon: sus?'✅':'🚫', label: sus?'Activate':'Suspend',
-      action: () => toggleSuspend(uid, u.status, u.name) },
-    'divider',
-    { icon:'🗑️', label:'Delete', danger: true, action: () => deleteUser(uid, u.name) },
-  ]);
-};
-
-// ── Create Landlord ────────────────────────────────────────
+// ── Create Landlord ───────────────────────────────────────
 window.createLandlord = async function() {
   const name  = document.getElementById('ll-name').value.trim();
   const email = document.getElementById('ll-email').value.trim();
   const pass  = document.getElementById('ll-pass').value;
   const phone = document.getElementById('ll-phone').value.trim();
   const btn   = document.getElementById('ll-btn');
-
   clearAlert('ll-alert');
-  if (!name || !email || !pass) { showAlert('ll-alert','⚠️ Name, email and password are required.'); return; }
+  if (!name || !email || !pass) { showAlert('ll-alert','⚠️ Name, email and password required.'); return; }
   if (pass.length < 8)          { showAlert('ll-alert','⚠️ Password must be at least 8 characters.'); return; }
-
   btn.disabled = true; btn.textContent = '⏳ Creating...';
-
-  const result = await createUserSecondary(email, pass, { name, email, phone, role: 'landlord' });
-
-  if (result.success) {
+  let secondApp = null;
+  try {
+    secondApp = initializeApp(CONFIG, 'sec_' + Date.now());
+    const secAuth = getAuth(secondApp);
+    const cred = await createUserWithEmailAndPassword(secAuth, email, pass);
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      uid: cred.user.uid, name, email, phone: phone||'',
+      role: 'landlord', status: 'active',
+      createdBy: ME.uid, createdAt: serverTimestamp()
+    });
+    await deleteApp(secondApp); secondApp = null;
     toast(`✅ ${name} created as Landlord!`);
     closeModal('modal-create-landlord');
-    ['ll-name','ll-email','ll-pass','ll-phone'].forEach(id => document.getElementById(id).value = '');
+    ['ll-name','ll-email','ll-pass','ll-phone'].forEach(id => document.getElementById(id).value='');
     await loadAll();
-  } else {
-    const MSGS = {
-      'auth/email-already-in-use': '❌ Email already registered.',
-      'auth/weak-password':        '❌ Password too weak.',
-      'auth/invalid-email':        '❌ Invalid email address.',
-    };
-    showAlert('ll-alert', MSGS[result.error?.code] || '❌ ' + result.error?.message);
+  } catch(e) {
+    if (secondApp) { try { await deleteApp(secondApp); } catch {} }
+    const MSGS = { 'auth/email-already-in-use':'❌ Email already registered.', 'auth/weak-password':'❌ Password too weak.' };
+    showAlert('ll-alert', MSGS[e.code] || '❌ ' + e.message);
   }
   btn.disabled = false; btn.textContent = '✅ Create Landlord';
 };
 
-// ── Edit User ──────────────────────────────────────────────
-function openEditModal(uid) {
+// ── Edit ──────────────────────────────────────────────────
+window.openEditModal = function(uid) {
   const u = allUsers.find(x => x.uid === uid);
   if (!u) return;
-  document.getElementById('edit-uid').value   = uid;
-  document.getElementById('edit-name').value  = u.name || '';
-  document.getElementById('edit-phone').value = u.phone || '';
+  document.getElementById('edit-uid').value    = uid;
+  document.getElementById('edit-name').value   = u.name || '';
+  document.getElementById('edit-phone').value  = u.phone || '';
   document.getElementById('edit-status').value = u.status || 'active';
   clearAlert('edit-alert');
-  openModal('modal-edit-user');
-}
+  openModal('modal-edit');
+};
 window.saveEdit = async function() {
   const uid    = document.getElementById('edit-uid').value;
   const name   = document.getElementById('edit-name').value.trim();
@@ -499,52 +488,48 @@ window.saveEdit = async function() {
   if (!name) { showAlert('edit-alert','⚠️ Name is required.'); return; }
   try {
     await updateDoc(doc(db,'users',uid), { name, phone, status, updatedAt: serverTimestamp() });
-    toast('✅ User updated!');
-    closeModal('modal-edit-user');
-    await loadAll();
+    toast('✅ User updated!'); closeModal('modal-edit'); await loadAll();
   } catch(e) { showAlert('edit-alert','❌ '+e.message); }
 };
 
-// ── Suspend/Activate ───────────────────────────────────────
-async function toggleSuspend(uid, current, name) {
-  const newStatus = current === 'suspended' ? 'active' : 'suspended';
-  if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Activate'} ${name}?`)) return;
+// ── Suspend ───────────────────────────────────────────────
+window.toggleSuspend = async function(uid, current, name) {
+  const next = current === 'suspended' ? 'active' : 'suspended';
+  if (!confirm(`${next==='suspended'?'Suspend':'Activate'} ${name}?`)) return;
   try {
-    await updateDoc(doc(db,'users',uid), { status: newStatus, updatedAt: serverTimestamp() });
-    toast(`${newStatus === 'suspended' ? '🚫 Suspended' : '✅ Activated'}: ${name}`);
+    await updateDoc(doc(db,'users',uid), { status: next, updatedAt: serverTimestamp() });
+    toast(`${next==='suspended'?'🚫 Suspended':'✅ Activated'}: ${name}`);
     await loadAll();
   } catch(e) { toast('❌ '+e.message,'error'); }
-}
+};
 
-// ── Reset Password ─────────────────────────────────────────
-function openResetModal(email) {
+// ── Reset Password ────────────────────────────────────────
+window.openResetModal = function(email) {
   activeEmail = email;
-  document.getElementById('reset-email-label').textContent = email;
+  document.getElementById('reset-label').textContent = email;
   clearAlert('reset-alert');
   openModal('modal-reset');
-}
+};
 window.sendReset = async function() {
   const btn = document.getElementById('reset-btn');
   btn.disabled = true; btn.textContent = '⏳ Sending...';
   try {
-    const { sendPasswordResetEmail: reset } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
     await sendPasswordResetEmail(auth, activeEmail);
     showAlert('reset-alert','✅ Reset email sent!','success');
-    toast('✅ Reset email sent!');
+    toast('✅ Password reset email sent!');
     setTimeout(() => closeModal('modal-reset'), 2000);
   } catch(e) { showAlert('reset-alert','❌ '+e.message); }
   btn.disabled = false; btn.textContent = '📧 Send Email';
 };
 
-// ── Delete User ────────────────────────────────────────────
-async function deleteUser(uid, name) {
-  if (!confirm(`Delete ${name}? This removes Firestore record only.`)) return;
+// ── Delete ────────────────────────────────────────────────
+window.deleteUser = async function(uid, name) {
+  if (!confirm(`Delete ${name}? This removes their Firestore record only.`)) return;
   try {
     await deleteDoc(doc(db,'users',uid));
-    toast(`🗑️ ${name} deleted`,'warning');
-    await loadAll();
+    toast(`🗑️ ${name} deleted`,'warning'); await loadAll();
   } catch(e) { toast('❌ '+e.message,'error'); }
-}
+};
 </script>
 </body>
 </html>
