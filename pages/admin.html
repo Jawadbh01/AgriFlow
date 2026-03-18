@@ -113,12 +113,7 @@
             <input class="form-input" style="max-width:220px" id="ll-search"
                    placeholder="🔍 Search..." oninput="filterLandlords(this.value)"/>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th></th></tr></thead>
-              <tbody id="ll-table"></tbody>
-            </table>
-          </div>
+          <div id="ll-table"></div>
         </div>
       </div>
 
@@ -135,12 +130,7 @@
             <input class="form-input" style="max-width:220px" id="mg-search"
                    placeholder="🔍 Search..." oninput="filterManagers(this.value)"/>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Landlord</th><th>Status</th><th></th></tr></thead>
-              <tbody id="mg-table"></tbody>
-            </table>
-          </div>
+          <div id="mg-table"></div>
         </div>
       </div>
 
@@ -160,12 +150,7 @@
               <option value="manager">Manager</option>
             </select>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Created</th></tr></thead>
-              <tbody id="usr-table"></tbody>
-            </table>
-          </div>
+          <div id="usr-table"></div>
         </div>
       </div>
 
@@ -367,59 +352,76 @@ function renderOverview() {
         </div>`).join('');
 }
 
-// ── Landlords Table ────────────────────────────────────────
+// ── Landlords Cards ────────────────────────────────────────
 function renderLandlords(list) {
   document.getElementById('ll-sub').textContent = `${list.length} landlord${list.length!==1?'s':''}`;
   document.getElementById('ll-table').innerHTML = list.length === 0
-    ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No landlords yet</td></tr>`
+    ? `<div class="empty-state"><div class="empty-icon">👑</div><div class="empty-title">No landlords yet</div></div>`
     : list.map(u => `
-        <tr>
-          <td><span class="badge badge-gold font-xs">${u.uid.slice(0,6)}</span></td>
-          <td style="font-weight:700">${u.name}</td>
-          <td class="text-muted font-sm">${u.email}</td>
-          <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
-          <td>
-            <button class="btn btn-ghost btn-sm" data-menu-trigger
-              onclick="showMenu(this,'${u.uid}')">⋮</button>
-          </td>
-        </tr>`).join('');
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-dim);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);font-size:15px;flex-shrink:0">${fmt.initial(u.name)}</div>
+            <div style="min-width:0">
+              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
+            <button class="btn btn-ghost btn-sm" data-menu-trigger onclick="showMenu(this,'${u.uid}')">⋮</button>
+          </div>
+        </div>`).join('');
 }
 window.filterLandlords = v =>
   renderLandlords(v ? allLandlords.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allLandlords);
 
-// ── Managers Table ─────────────────────────────────────────
+// ── Managers Cards ─────────────────────────────────────────
 function renderManagers(list) {
   document.getElementById('mg-sub').textContent = `${list.length} manager${list.length!==1?'s':''}`;
   document.getElementById('mg-table').innerHTML = list.length === 0
-    ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No managers yet</td></tr>`
+    ? `<div class="empty-state"><div class="empty-icon">👨‍💼</div><div class="empty-title">No managers yet</div></div>`
     : list.map(u => {
         const ll = allLandlords.find(l => l.uid === u.landlordId);
-        return `<tr>
-          <td><span class="badge badge-blue font-xs">${u.uid.slice(0,6)}</span></td>
-          <td style="font-weight:700">${u.name}</td>
-          <td class="text-muted font-sm">${u.email}</td>
-          <td class="font-sm">${ll ? ll.name : '—'}</td>
-          <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
-          <td>
-            <button class="btn btn-ghost btn-sm" data-menu-trigger
-              onclick="showMenu(this,'${u.uid}')">⋮</button>
-          </td>
-        </tr>`;}).join('');
+        return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(96,165,250,0.12);border:1.5px solid rgba(96,165,250,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--info);font-size:15px;flex-shrink:0">${fmt.initial(u.name)}</div>
+            <div style="min-width:0">
+              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+              ${ll ? `<div style="font-size:11px;color:var(--primary);margin-top:1px">👑 ${ll.name}</div>` : ''}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
+            <button class="btn btn-ghost btn-sm" data-menu-trigger onclick="showMenu(this,'${u.uid}')">⋮</button>
+          </div>
+        </div>`;}).join('');
 }
 window.filterManagers = v =>
   renderManagers(v ? allManagers.filter(u => (u.name+u.email).toLowerCase().includes(v.toLowerCase())) : allManagers);
 
-// ── All Users Table ────────────────────────────────────────
+// ── All Users Cards ────────────────────────────────────────
 function renderAllUsers(list) {
   const RC = { admin:'badge-gray', landlord:'badge-gold', manager:'badge-blue' };
+  const RI = { admin:'⚙️', landlord:'👑', manager:'👨‍💼' };
   document.getElementById('usr-table').innerHTML = list.length === 0
-    ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No users</td></tr>`
-    : list.map(u => `<tr>
-        <td style="font-weight:700">${u.name}<br><span class="font-xs text-muted">${u.email}</span></td>
-        <td><span class="badge ${RC[u.role]||'badge-gray'}">${u.role}</span></td>
-        <td><span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span></td>
-        <td class="text-muted font-xs">${fmt.date(u.createdAt)}</td>
-      </tr>`).join('');
+    ? `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No users</div></div>`
+    : list.map(u => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <div style="width:38px;height:38px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${RI[u.role]||'👤'}</div>
+            <div style="min-width:0">
+              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.name}</div>
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${u.email}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${fmt.date(u.createdAt)}</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+            <span class="badge ${RC[u.role]||'badge-gray'}">${u.role}</span>
+            <span class="badge ${u.status==='suspended'?'badge-red':'badge-green'}">${u.status||'active'}</span>
+          </div>
+        </div>`).join('');
 }
 window.filterUsers = function() {
   const v = document.getElementById('usr-search').value.toLowerCase();
@@ -436,113 +438,4 @@ window.showMenu = function(btn, uid) {
   if (!u) return;
   const sus = u.status === 'suspended';
   showActionMenu(btn, [
-    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) },
-    { icon:'🔑', label:'Reset Password', action: () => openResetModal(u.email) },
-    'divider',
-    { icon: sus?'✅':'🚫', label: sus?'Activate':'Suspend',
-      action: () => toggleSuspend(uid, u.status, u.name) },
-    'divider',
-    { icon:'🗑️', label:'Delete', danger: true, action: () => deleteUser(uid, u.name) },
-  ]);
-};
-
-// ── Create Landlord ────────────────────────────────────────
-window.createLandlord = async function() {
-  const name  = document.getElementById('ll-name').value.trim();
-  const email = document.getElementById('ll-email').value.trim();
-  const pass  = document.getElementById('ll-pass').value;
-  const phone = document.getElementById('ll-phone').value.trim();
-  const btn   = document.getElementById('ll-btn');
-
-  clearAlert('ll-alert');
-  if (!name || !email || !pass) { showAlert('ll-alert','⚠️ Name, email and password are required.'); return; }
-  if (pass.length < 8)          { showAlert('ll-alert','⚠️ Password must be at least 8 characters.'); return; }
-
-  btn.disabled = true; btn.textContent = '⏳ Creating...';
-
-  const result = await createUserSecondary(email, pass, { name, email, phone, role: 'landlord' });
-
-  if (result.success) {
-    toast(`✅ ${name} created as Landlord!`);
-    closeModal('modal-create-landlord');
-    ['ll-name','ll-email','ll-pass','ll-phone'].forEach(id => document.getElementById(id).value = '');
-    await loadAll();
-  } else {
-    const MSGS = {
-      'auth/email-already-in-use': '❌ Email already registered.',
-      'auth/weak-password':        '❌ Password too weak.',
-      'auth/invalid-email':        '❌ Invalid email address.',
-    };
-    showAlert('ll-alert', MSGS[result.error?.code] || '❌ ' + result.error?.message);
-  }
-  btn.disabled = false; btn.textContent = '✅ Create Landlord';
-};
-
-// ── Edit User ──────────────────────────────────────────────
-function openEditModal(uid) {
-  const u = allUsers.find(x => x.uid === uid);
-  if (!u) return;
-  document.getElementById('edit-uid').value   = uid;
-  document.getElementById('edit-name').value  = u.name || '';
-  document.getElementById('edit-phone').value = u.phone || '';
-  document.getElementById('edit-status').value = u.status || 'active';
-  clearAlert('edit-alert');
-  openModal('modal-edit-user');
-}
-window.saveEdit = async function() {
-  const uid    = document.getElementById('edit-uid').value;
-  const name   = document.getElementById('edit-name').value.trim();
-  const phone  = document.getElementById('edit-phone').value.trim();
-  const status = document.getElementById('edit-status').value;
-  if (!name) { showAlert('edit-alert','⚠️ Name is required.'); return; }
-  try {
-    await updateDoc(doc(db,'users',uid), { name, phone, status, updatedAt: serverTimestamp() });
-    toast('✅ User updated!');
-    closeModal('modal-edit-user');
-    await loadAll();
-  } catch(e) { showAlert('edit-alert','❌ '+e.message); }
-};
-
-// ── Suspend/Activate ───────────────────────────────────────
-async function toggleSuspend(uid, current, name) {
-  const newStatus = current === 'suspended' ? 'active' : 'suspended';
-  if (!confirm(`${newStatus === 'suspended' ? 'Suspend' : 'Activate'} ${name}?`)) return;
-  try {
-    await updateDoc(doc(db,'users',uid), { status: newStatus, updatedAt: serverTimestamp() });
-    toast(`${newStatus === 'suspended' ? '🚫 Suspended' : '✅ Activated'}: ${name}`);
-    await loadAll();
-  } catch(e) { toast('❌ '+e.message,'error'); }
-}
-
-// ── Reset Password ─────────────────────────────────────────
-function openResetModal(email) {
-  activeEmail = email;
-  document.getElementById('reset-email-label').textContent = email;
-  clearAlert('reset-alert');
-  openModal('modal-reset');
-}
-window.sendReset = async function() {
-  const btn = document.getElementById('reset-btn');
-  btn.disabled = true; btn.textContent = '⏳ Sending...';
-  try {
-    const { sendPasswordResetEmail: reset } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    await sendPasswordResetEmail(auth, activeEmail);
-    showAlert('reset-alert','✅ Reset email sent!','success');
-    toast('✅ Reset email sent!');
-    setTimeout(() => closeModal('modal-reset'), 2000);
-  } catch(e) { showAlert('reset-alert','❌ '+e.message); }
-  btn.disabled = false; btn.textContent = '📧 Send Email';
-};
-
-// ── Delete User ────────────────────────────────────────────
-async function deleteUser(uid, name) {
-  if (!confirm(`Delete ${name}? This removes Firestore record only.`)) return;
-  try {
-    await deleteDoc(doc(db,'users',uid));
-    toast(`🗑️ ${name} deleted`,'warning');
-    await loadAll();
-  } catch(e) { toast('❌ '+e.message,'error'); }
-}
-</script>
-</body>
-</html>
+    { icon:'✏️', label:'Edit',           action: () => openEditModal(uid) }
