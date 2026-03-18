@@ -1,4 +1,4 @@
-const CACHE = 'agriflow-v3';
+const CACHE = 'agriflow-v4';
 const BASE  = '/AgriFlow';
 
 // Static assets to cache on install
