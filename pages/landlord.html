@@ -51,7 +51,7 @@
       <!-- OVERVIEW -->
       <div data-tab-content="overview">
         <div class="section-header">
-          <div><div class="section-title" id="welcome-title">My Dashboard</div><div class="section-sub" id="overview-sub"></div></div>
+          <div><div class="section-title" id="welcome-title">Dashboard</div><div class="section-sub" id="overview-sub"></div></div>
         </div>
         <div class="stats-grid mb-16" id="stats-grid"></div>
         <div class="card mb-16">
@@ -79,7 +79,7 @@
         </div>
         <div class="card mb-16">
           <div class="card-header">
-            <select class="form-select" style="max-width:180px" id="exp-farm-filter" onchange="filterExpenses()"><option value="">All Farms</option></select>
+            <select class="form-select" style="max-width:200px" id="exp-farm-filter" onchange="filterExpenses()"><option value="">All Farms</option></select>
           </div>
         </div>
         <div id="expenses-list"></div>
@@ -97,7 +97,7 @@
       <div data-tab-content="managers" class="hidden">
         <div class="section-header">
           <div><div class="section-title">👨‍💼 Managers</div><div class="section-sub" id="managers-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-manager')">➕ Add Manager</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-manager')">➕ Add Manager</button>
         </div>
         <div id="managers-list"></div>
       </div>
@@ -109,13 +109,13 @@
 <!-- Modal: Add Manager -->
 <div class="modal-overlay" id="modal-add-manager">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">👨‍💼 Add Manager</div><button class="modal-close" onclick="closeModal('modal-add-manager')">✕</button></div>
-    <div class="alert" id="addmgr-alert"></div>
-    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="addmgr-name" placeholder="Ali Hassan"/></div>
-    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="addmgr-email" placeholder="ali@email.com"/></div>
-    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="addmgr-phone" placeholder="03001234567"/></div>
-    <div class="form-group"><label class="form-label">Password * (min 8 chars)</label><input class="form-input" type="password" id="addmgr-pass" placeholder="••••••••"/></div>
-    <button class="btn btn-primary btn-full" id="addmgr-btn" onclick="addManager()">✅ Create Manager</button>
+    <div class="modal-header"><div class="modal-title">👨‍💼 Add Manager</div><button class="modal-close" onclick="closeM('modal-add-manager')">✕</button></div>
+    <div class="alert" id="mgr-alert"></div>
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="mgr-name" placeholder="Ali Hassan"/></div>
+    <div class="form-group"><label class="form-label">Email *</label><input class="form-input" type="email" id="mgr-email" placeholder="ali@email.com"/></div>
+    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="mgr-phone" placeholder="03001234567"/></div>
+    <div class="form-group"><label class="form-label">Password * (min 8 chars)</label><input class="form-input" type="password" id="mgr-pass" placeholder="••••••••"/></div>
+    <button class="btn btn-primary btn-full" id="mgr-btn" onclick="addManager()">✅ Create Manager</button>
   </div>
 </div>
 
@@ -124,7 +124,7 @@
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="farm-detail-title">Farm Details</div>
-      <button class="modal-close" onclick="closeModal('modal-farm-detail')">✕</button>
+      <button class="modal-close" onclick="closeM('modal-farm-detail')">✕</button>
     </div>
     <div id="farm-detail-content"></div>
   </div>
@@ -138,30 +138,42 @@
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, createUserWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
-const app=initializeApp(CONFIG),auth=getAuth(app),db=getFirestore(app);
-
+const app=initializeApp(CONFIG), auth=getAuth(app), db=getFirestore(app);
 let ME=null, myFarms=[], myExpenses=[], myHarvests=[], myFarmers=[], myDebts=[], myManagers=[];
 
 // ── Theme ─────────────────────────────────────────────────
-function initTheme(){document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');}
-window.toggleTheme=function(){const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
+const initTheme=()=>document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');
+window.toggleTheme=()=>{const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
 initTheme();
 
 // ── Toast ─────────────────────────────────────────────────
 function toast(msg,type='success'){const r=document.getElementById('toast-root'),el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<span>${{success:'✅',error:'❌',warning:'⚠️'}[type]||'ℹ️'}</span><span>${msg}</span>`;r.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3500);}
 
+// ── Alert ─────────────────────────────────────────────────
+function setAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
+function clrAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
+
 // ── Loader ────────────────────────────────────────────────
 function hideLoader(){document.getElementById('page-loader').classList.add('hidden');}
-function loaderError(msg){document.getElementById('page-loader').innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:var(--danger);font-weight:700;margin-bottom:8px">Error</div><div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div><button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button></div>`;}
+function loaderErr(msg){document.getElementById('page-loader').innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:var(--danger);font-weight:700;margin-bottom:8px">Error</div><div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div><button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button></div>`;}
+
+// ── Modal — openM / closeM ────────────────────────────────
+window.openM  = id => { const el=document.getElementById(id); if(el) el.classList.add('open'); };
+window.closeM = id => { const el=document.getElementById(id); if(el) el.classList.remove('open'); };
+document.querySelectorAll('.modal-overlay').forEach(m=>
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); })
+);
 
 // ── Sidebar ───────────────────────────────────────────────
 document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');});
 document.getElementById('sidebar-overlay').addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');});
+function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── Tabs ──────────────────────────────────────────────────
 const TAB_TITLES={overview:'Overview',farms:'My Farms',expenses:'Expenses',harvests:'Harvests',managers:'Managers'};
@@ -169,21 +181,21 @@ window.switchTab=function(tab){
   document.querySelectorAll('[data-tab-btn]').forEach(b=>b.classList.toggle('active',b.dataset.tabBtn===tab));
   document.querySelectorAll('[data-tab-content]').forEach(c=>c.classList.toggle('hidden',c.dataset.tabContent!==tab));
   document.getElementById('page-title').textContent=TAB_TITLES[tab]||tab;
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('show');
+  closeSB();
 };
 document.querySelectorAll('[data-tab-btn]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tabBtn)));
 
 // ── Online ────────────────────────────────────────────────
-function updateOnline(){const on=navigator.onLine;document.getElementById('online-dot').classList.toggle('off',!on);document.getElementById('offline-bar').classList.toggle('show',!on);}
-window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
+function updOnline(){const on=navigator.onLine;document.getElementById('online-dot').classList.toggle('off',!on);document.getElementById('offline-bar').classList.toggle('show',!on);}
+window.addEventListener('online',updOnline);window.addEventListener('offline',updOnline);updOnline();
 
 // ── Helpers ───────────────────────────────────────────────
-function fmtMoney(n){return '₨ '+Number(n||0).toLocaleString('en-PK');}
-function fmtDate(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'});}
-function initial(n){return(n||'?').charAt(0).toUpperCase();}
-const CAT_ICON={seeds:'🌱',fertilizer:'🧪',diesel:'⛽',labor:'👷',pesticide:'💊',water:'💧',equipment:'🔧',other:'📦'};
+function fmtM(n){return '₨ '+Number(n||0).toLocaleString('en-PK');}
+function fmtD(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'});}
+function ini(n){return(n||'?').charAt(0).toUpperCase();}
+const CAT={seeds:'🌱',fertilizer:'🧪',diesel:'⛽',labor:'👷',pesticide:'💊',water:'💧',equipment:'🔧',other:'📦'};
 
+// ── Logout ────────────────────────────────────────────────
 window.doLogout=async function(){if(!confirm('Logout?'))return;await signOut(auth);window.location.href='../index.html';};
 
 // ── Auth Guard ────────────────────────────────────────────
@@ -191,29 +203,27 @@ onAuthStateChanged(auth,async user=>{
   if(!user){window.location.href='../index.html';return;}
   try{
     const snap=await getDoc(doc(db,'users',user.uid));
-    if(!snap.exists()){window.location.href='../index.html';return;}
-    const data=snap.data();
-    if(data.role!=='landlord'||data.status==='suspended'){window.location.href='../index.html';return;}
-    ME={uid:user.uid,...data};
+    if(!snap.exists()||snap.data().role!=='landlord'||snap.data().status==='suspended'){window.location.href='../index.html';return;}
+    ME={uid:user.uid,...snap.data()};
     document.getElementById('user-name').textContent=ME.name||'Landlord';
-    document.getElementById('user-avatar').textContent=initial(ME.name);
+    document.getElementById('user-avatar').textContent=ini(ME.name);
     const hr=new Date().getHours();
     document.getElementById('welcome-title').textContent=(hr<12?'Good morning':hr<17?'Good afternoon':'Good evening')+', '+ME.name+' 👋';
     await loadAll();
     hideLoader();
-  }catch(e){loaderError(e.message);}
+  }catch(e){loaderErr(e.message);}
 });
 
-// ── Load All ──────────────────────────────────────────────
+// ── Load ──────────────────────────────────────────────────
 async function loadAll(){
   try{
     const [fS,eS,hS,frS,dS,mS]=await Promise.all([
-      getDocs(query(collection(db,'farms'),where('landlordId','==',ME.uid))),
+      getDocs(query(collection(db,'farms'),   where('landlordId','==',ME.uid))),
       getDocs(query(collection(db,'expenses'),where('landlordId','==',ME.uid))),
       getDocs(query(collection(db,'harvests'),where('landlordId','==',ME.uid))),
-      getDocs(query(collection(db,'farmers'),where('landlordId','==',ME.uid))),
-      getDocs(query(collection(db,'debts'),where('landlordId','==',ME.uid))),
-      getDocs(query(collection(db,'users'),where('landlordId','==',ME.uid)))
+      getDocs(query(collection(db,'farmers'), where('landlordId','==',ME.uid))),
+      getDocs(query(collection(db,'debts'),   where('landlordId','==',ME.uid))),
+      getDocs(query(collection(db,'users'),   where('landlordId','==',ME.uid)))
     ]);
     myFarms   =fS.docs.map(d=>({id:d.id,...d.data()}));
     myExpenses=eS.docs.map(d=>({id:d.id,...d.data()}));
@@ -221,7 +231,8 @@ async function loadAll(){
     myFarmers =frS.docs.map(d=>({id:d.id,...d.data()}));
     myDebts   =dS.docs.map(d=>({id:d.id,...d.data()}));
     myManagers=mS.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.role==='manager');
-    document.getElementById('exp-farm-filter').innerHTML='<option value="">All Farms</option>'+myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+    document.getElementById('exp-farm-filter').innerHTML=
+      '<option value="">All Farms</option>'+myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
     renderOverview();renderFarms();renderExpenses(myExpenses);renderHarvests();renderManagers();
   }catch(e){toast('Load error: '+e.message,'error');}
 }
@@ -231,35 +242,33 @@ function renderOverview(){
   const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.landlordShare||0),0);
   const profit=totalInc-totalExp;
-  const totalDebt=myDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
   document.getElementById('overview-sub').textContent=`${myFarms.length} farms · ${myFarmers.length} farmers`;
   document.getElementById('stats-grid').innerHTML=`
-    <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-label">Total Farms</div><div class="stat-value">${myFarms.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-label">Farms</div><div class="stat-value">${myFarms.length}</div></div>
     <div class="stat-card"><div class="stat-icon">👨‍🌾</div><div class="stat-label">Farmers</div><div class="stat-value">${myFarmers.length}</div></div>
-    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">My Expenses</div><div class="stat-value" style="font-size:16px;color:var(--danger)">${fmtMoney(totalExp)}</div></div>
-    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">My Profit</div><div class="stat-value" style="font-size:16px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</div></div>`;
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Expenses</div><div class="stat-value" style="font-size:16px;color:var(--danger)">${fmtM(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Profit</div><div class="stat-value" style="font-size:16px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div></div>`;
+
   document.getElementById('overview-farms').innerHTML=myFarms.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms assigned yet</div><div class="empty-sub">Contact your manager</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div><div class="empty-sub">Your manager will add farms</div></div>`
     :myFarms.slice(0,4).map(f=>{
       const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
       const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)">
-        <div>
-          <div style="font-weight:700;font-size:14px">${f.name}</div>
-          <div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres · ${f.location||'—'}</div>
-        </div>
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="viewFarm('${f.id}')">
+        <div><div style="font-weight:700;font-size:14px">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres</div></div>
         <div style="text-align:right">
-          <div style="font-weight:800;font-size:14px;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(inc-exp)}</div>
+          <div style="font-weight:800;font-size:14px;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtM(inc-exp)}</div>
           <div style="font-size:10px;color:var(--muted)">profit</div>
         </div>
       </div>`;}).join('');
+
   document.getElementById('overview-harvests').innerHTML=myHarvests.length===0
     ?`<div class="empty-state"><div class="empty-icon">🌾</div><div class="empty-title">No harvests yet</div></div>`
     :myHarvests.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4).map(h=>{
       const farm=myFarms.find(f=>f.id===h.farmId);
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)">
         <div><div style="font-weight:700;font-size:14px">🌾 ${h.crop}</div><div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${h.date}</div></div>
-        <div style="text-align:right"><div style="font-weight:800;color:var(--primary)">${fmtMoney(h.landlordShare)}</div><div style="font-size:10px;color:var(--muted)">my share</div></div>
+        <div style="text-align:right"><div style="font-weight:800;color:var(--primary)">${fmtM(h.landlordShare)}</div><div style="font-size:10px;color:var(--muted)">my share</div></div>
       </div>`;}).join('');
 }
 
@@ -272,43 +281,117 @@ function renderFarms(){
       const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
       const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
       const farmers=myFarmers.filter(fr=>fr.farmId===f.id);
-      const harvests=myHarvests.filter(h=>h.farmId===f.id).length;
+      const mgr=myManagers.find(m=>m.uid===f.managerId);
       return `<div class="card mb-16">
-        <div class="card-body">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px" onclick="viewFarm('${f.id}')" style="cursor:pointer">
-            <div style="cursor:pointer" onclick="viewFarm('${f.id}')">
+        <div class="card-body" style="cursor:pointer" onclick="viewFarm('${f.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div>
               <div style="font-size:17px;font-weight:800">${f.name}</div>
               <div style="font-size:12px;color:var(--muted);margin-top:3px">${f.location||'—'} · ${f.area||'?'} acres · ${f.crop||'No crop'}</div>
             </div>
             <span class="badge badge-green">${f.season||'—'}</span>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">EXPENSES</div>
-              <div style="font-weight:800;color:var(--danger)">${fmtMoney(exp)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--muted);font-weight:700">EXPENSES</div>
+              <div style="font-weight:800;color:var(--danger);font-size:13px">${fmtM(exp)}</div>
             </div>
-            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">MY INCOME</div>
-              <div style="font-weight:800;color:var(--primary)">${fmtMoney(inc)}</div>
+            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--muted);font-weight:700">MY INCOME</div>
+              <div style="font-weight:800;color:var(--primary);font-size:13px">${fmtM(inc)}</div>
             </div>
-            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">PROFIT</div>
-              <div style="font-weight:800;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(inc-exp)}</div>
+            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:10px;color:var(--muted);font-weight:700">PROFIT</div>
+              <div style="font-weight:800;font-size:13px;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtM(inc-exp)}</div>
             </div>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
             <span>👨‍🌾 ${farmers.length} farmer${farmers.length!==1?'s':''}</span>
-            <span>🌾 ${harvests} harvest${harvests!==1?'s':''}</span>
+            <span>👨‍💼 ${mgr?mgr.name:'No manager'}</span>
           </div>
-          <div style="display:flex;gap:8px"><button class="btn btn-primary btn-sm" onclick="viewFarm('${f.id}')">📋 View Details</button><button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️ Print</button></div>
+        </div>
+        <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();viewFarm('${f.id}')">📋 View Details</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();printFarmReport('${f.id}')">🖨️ Print</button>
         </div>
       </div>`;}).join('');
 }
 
+// ── View Farm Detail ───────────────────────────────────────
+window.viewFarm=function(farmId){
+  const farm=myFarms.find(f=>f.id===farmId); if(!farm)return;
+  const exp=myExpenses.filter(e=>e.farmId===farmId);
+  const harv=myHarvests.filter(h=>h.farmId===farmId);
+  const farmers=myFarmers.filter(f=>f.farmId===farmId);
+  const mgr=myManagers.find(m=>m.uid===farm.managerId);
+  const totalExp=exp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalInc=harv.reduce((s,h)=>s+Number(h.landlordShare||0),0);
+  const profit=totalInc-totalExp;
+  document.getElementById('farm-detail-title').textContent='🌱 '+farm.name;
+  document.getElementById('farm-detail-content').innerHTML=`
+    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
+      <div class="info-list">
+        <div class="info-row"><span class="info-label">Location</span><span class="info-value">${farm.location||'—'}</span></div>
+        <div class="info-row"><span class="info-label">Area</span><span class="info-value">${farm.area||'?'} acres</span></div>
+        <div class="info-row"><span class="info-label">Crop</span><span class="info-value">${farm.crop||'—'}</span></div>
+        <div class="info-row"><span class="info-label">Season</span><span class="info-value">${farm.season||'—'}</span></div>
+        <div class="info-row"><span class="info-label">Manager</span><span class="info-value">${mgr?mgr.name:'Not assigned'}</span></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+      <div style="background:var(--danger-dim);border-radius:var(--radius-sm);padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700">EXPENSES</div>
+        <div style="font-weight:800;color:var(--danger);margin-top:4px;font-size:13px">${fmtM(totalExp)}</div>
+      </div>
+      <div style="background:var(--primary-dim);border-radius:var(--radius-sm);padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700">MY INCOME</div>
+        <div style="font-weight:800;color:var(--primary);margin-top:4px;font-size:13px">${fmtM(totalInc)}</div>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
+        <div style="font-size:10px;color:var(--muted);font-weight:700">PROFIT</div>
+        <div style="font-weight:800;margin-top:4px;font-size:13px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">👨‍🌾 Farmers (${farmers.length})</div>
+      ${farmers.length===0?'<div style="color:var(--muted);font-size:13px">No farmers assigned</div>':
+        farmers.map(f=>{
+          const debt=myDebts.filter(d=>d.farmerId===f.id&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-weight:600;font-size:13px">${f.name}${f.role==='main'?' <span class="badge badge-gold" style="font-size:9px">MAIN</span>':''}</div>
+              <div style="font-size:11px;color:var(--muted)">${f.phone||'—'} · ${f.sharePercentage||50}% share</div>
+            </div>
+            ${debt>0?`<span style="font-size:12px;color:var(--danger);font-weight:700">${fmtM(debt)} debt</span>`:'<span class="badge badge-green">No debt</span>'}
+          </div>`;}).join('')}
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">💸 Recent Expenses (${exp.length})</div>
+      ${exp.length===0?'<div style="color:var(--muted);font-size:13px">No expenses</div>':
+        exp.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map(e=>`
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div><div style="font-size:13px;font-weight:600">${CAT[e.type]||'📦'} ${e.type}</div><div style="font-size:11px;color:var(--muted)">${e.date}${e.description?' · '+e.description:''}</div></div>
+            <span style="font-weight:700;color:var(--danger);font-size:13px">${fmtM(e.amount)}</span>
+          </div>`).join('')}
+      ${exp.length>5?`<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px">+${exp.length-5} more</div>`:''}
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🌾 Harvests (${harv.length})</div>
+      ${harv.length===0?'<div style="color:var(--muted);font-size:13px">No harvests yet</div>':
+        harv.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>`
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div><div style="font-size:13px;font-weight:600">🌾 ${h.crop}</div><div style="font-size:11px;color:var(--muted)">${h.date} · ${h.qty} ${h.unit}</div></div>
+            <div style="text-align:right"><div style="font-weight:700;color:var(--primary);font-size:13px">${fmtM(h.landlordShare)}</div><div style="font-size:10px;color:var(--muted)">my share</div></div>
+          </div>`).join('')}
+    </div>
+    <button class="btn btn-outline btn-sm btn-full" onclick="printFarmReport('${farmId}')">🖨️ Print Report</button>`;
+  openM('modal-farm-detail');
+};
+
 // ── Expenses ──────────────────────────────────────────────
 function renderExpenses(list){
   const total=list.reduce((s,e)=>s+Number(e.amount||0),0);
-  document.getElementById('expenses-sub').textContent=`${list.length} records · ${fmtMoney(total)} total`;
+  document.getElementById('expenses-sub').textContent=`${list.length} records · ${fmtM(total)}`;
   document.getElementById('expenses-list').innerHTML=list.length===0
     ?`<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No expenses yet</div></div>`
     :list.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>{
@@ -316,26 +399,23 @@ function renderExpenses(list){
       return `<div class="card mb-8">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px">
           <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-            <div style="width:40px;height:40px;border-radius:10px;background:var(--danger-dim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT_ICON[e.type]||'📦'}</div>
+            <div style="width:40px;height:40px;border-radius:10px;background:var(--danger-dim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT[e.type]||'📦'}</div>
             <div style="min-width:0">
               <div style="font-weight:700;font-size:14px">${e.type?.charAt(0).toUpperCase()+e.type?.slice(1)||'—'}</div>
-              <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${fmtDate(e.date)}</div>
+              <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${fmtD(e.date)}</div>
               ${e.description?`<div style="font-size:11px;color:var(--muted)">${e.description}</div>`:''}
             </div>
           </div>
-          <div style="font-weight:800;color:var(--danger);flex-shrink:0;margin-left:10px">${fmtMoney(e.amount)}</div>
+          <div style="font-weight:800;color:var(--danger);flex-shrink:0;margin-left:10px">${fmtM(e.amount)}</div>
         </div>
       </div>`;}).join('');
 }
-window.filterExpenses=function(){
-  const fid=document.getElementById('exp-farm-filter').value;
-  renderExpenses(fid?myExpenses.filter(e=>e.farmId===fid):myExpenses);
-};
+window.filterExpenses=function(){const fid=document.getElementById('exp-farm-filter').value;renderExpenses(fid?myExpenses.filter(e=>e.farmId===fid):myExpenses);};
 
 // ── Harvests ──────────────────────────────────────────────
 function renderHarvests(){
   const total=myHarvests.reduce((s,h)=>s+Number(h.landlordShare||0),0);
-  document.getElementById('harvests-sub').textContent=`${myHarvests.length} harvests · My income: ${fmtMoney(total)}`;
+  document.getElementById('harvests-sub').textContent=`${myHarvests.length} harvests · My income: ${fmtM(total)}`;
   document.getElementById('harvests-list').innerHTML=myHarvests.length===0
     ?`<div class="empty-state"><div class="empty-icon">🌾</div><div class="empty-title">No harvests yet</div></div>`
     :myHarvests.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>{
@@ -349,11 +429,11 @@ function renderHarvests(){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
               <div style="font-size:10px;color:var(--muted);font-weight:700">TOTAL INCOME</div>
-              <div style="font-weight:800;font-size:14px">${fmtMoney(h.totalIncome)}</div>
+              <div style="font-weight:800">${fmtM(h.totalIncome)}</div>
             </div>
             <div style="background:var(--primary-dim);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px;text-align:center">
               <div style="font-size:10px;color:var(--muted);font-weight:700">MY SHARE</div>
-              <div style="font-weight:800;font-size:14px;color:var(--primary)">${fmtMoney(h.landlordShare)}</div>
+              <div style="font-weight:800;color:var(--primary)">${fmtM(h.landlordShare)}</div>
             </div>
           </div>
         </div>
@@ -368,7 +448,7 @@ function renderManagers(){
     :myManagers.map(m=>`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);background:var(--card);border-radius:var(--radius);margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-          <div style="width:42px;height:42px;border-radius:10px;background:rgba(96,165,250,0.12);border:1.5px solid rgba(96,165,250,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--info);font-size:16px;flex-shrink:0">${initial(m.name)}</div>
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(96,165,250,0.12);border:1.5px solid rgba(96,165,250,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--info);font-size:16px;flex-shrink:0">${ini(m.name)}</div>
           <div style="min-width:0">
             <div style="font-weight:700;font-size:14px">${m.name}</div>
             <div style="font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.email||'—'}</div>
@@ -379,20 +459,20 @@ function renderManagers(){
       </div>`).join('');
 }
 
-// ── Add Manager (by landlord) ──────────────────────────────
+// ── Add Manager ───────────────────────────────────────────
 window.addManager=async function(){
-  const name  = document.getElementById('addmgr-name').value.trim();
-  const email = document.getElementById('addmgr-email').value.trim();
-  const pass  = document.getElementById('addmgr-pass').value;
-  const phone = document.getElementById('addmgr-phone').value.trim();
-  const btn   = document.getElementById('addmgr-btn');
-  clearAlert('addmgr-alert');
-  if(!name||!email||!pass){showAlert('addmgr-alert','⚠️ Name, email and password are required.');return;}
-  if(pass.length<8){showAlert('addmgr-alert','⚠️ Password must be at least 8 characters.');return;}
+  const name =document.getElementById('mgr-name').value.trim();
+  const email=document.getElementById('mgr-email').value.trim();
+  const pass =document.getElementById('mgr-pass').value;
+  const phone=document.getElementById('mgr-phone').value.trim();
+  const btn  =document.getElementById('mgr-btn');
+  clrAlert('mgr-alert');
+  if(!name||!email||!pass){setAlert('mgr-alert','⚠️ Name, email and password required.');return;}
+  if(pass.length<8){setAlert('mgr-alert','⚠️ Password must be at least 8 characters.');return;}
   btn.disabled=true; btn.textContent='⏳ Creating...';
   let secondApp=null;
   try{
-    secondApp=initializeApp({apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"},'sec_'+Date.now());
+    secondApp=initializeApp(CONFIG,'sec_'+Date.now());
     const secAuth=getAuth(secondApp);
     const cred=await createUserWithEmailAndPassword(secAuth,email,pass);
     await setDoc(doc(db,'users',cred.user.uid),{
@@ -403,96 +483,18 @@ window.addManager=async function(){
     });
     await deleteApp(secondApp); secondApp=null;
     toast(`✅ ${name} created as Manager!`);
-    closeModal('modal-add-manager');
-    ['addmgr-name','addmgr-email','addmgr-pass','addmgr-phone'].forEach(id=>document.getElementById(id).value='');
+    closeM('modal-add-manager');
+    ['mgr-name','mgr-email','mgr-pass','mgr-phone'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
   }catch(e){
     if(secondApp){try{await deleteApp(secondApp);}catch{}}
     const MSGS={'auth/email-already-in-use':'❌ Email already registered.','auth/weak-password':'❌ Password too weak.'};
-    showAlert('addmgr-alert',MSGS[e.code]||'❌ '+e.message);
+    setAlert('mgr-alert',MSGS[e.code]||'❌ '+e.message);
   }
   btn.disabled=false; btn.textContent='✅ Create Manager';
 };
 
-// ── View Farm Detail ───────────────────────────────────────
-window.viewFarm=function(farmId){
-  const farm=myFarms.find(f=>f.id===farmId); if(!farm)return;
-  const exp=myExpenses.filter(e=>e.farmId===farmId);
-  const harv=myHarvests.filter(h=>h.farmId===farmId);
-  const farmers=myFarmers.filter(f=>f.farmId===farmId);
-  const mgr=myManagers.find(m=>m.uid===farm.managerId);
-  const totalExp=exp.reduce((s,e)=>s+Number(e.amount||0),0);
-  const totalInc=harv.reduce((s,h)=>s+Number(h.landlordShare||0),0);
-  const profit=totalInc-totalExp;
-
-  document.getElementById('farm-detail-title').textContent='🌱 '+farm.name;
-  document.getElementById('farm-detail-content').innerHTML=`
-    <!-- Info -->
-    <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
-      <div class="info-list">
-        <div class="info-row"><span class="info-label">Location</span><span class="info-value">${farm.location||'—'}</span></div>
-        <div class="info-row"><span class="info-label">Area</span><span class="info-value">${farm.area||'?'} acres</span></div>
-        <div class="info-row"><span class="info-label">Crop</span><span class="info-value">${farm.crop||'—'}</span></div>
-        <div class="info-row"><span class="info-label">Season</span><span class="info-value">${farm.season||'—'}</span></div>
-        <div class="info-row"><span class="info-label">Manager</span><span class="info-value">${mgr?mgr.name:'Not assigned'}</span></div>
-      </div>
-    </div>
-    <!-- P&L -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
-      <div style="background:var(--danger-dim);border-radius:var(--radius-sm);padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-weight:700">EXPENSES</div>
-        <div style="font-weight:800;color:var(--danger);margin-top:4px">${fmtMoney(totalExp)}</div>
-      </div>
-      <div style="background:var(--primary-dim);border-radius:var(--radius-sm);padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-weight:700">MY INCOME</div>
-        <div style="font-weight:800;color:var(--primary);margin-top:4px">${fmtMoney(totalInc)}</div>
-      </div>
-      <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-        <div style="font-size:10px;color:var(--muted);font-weight:700">PROFIT</div>
-        <div style="font-weight:800;color:${profit>=0?'var(--primary)':'var(--danger)'};margin-top:4px">${fmtMoney(profit)}</div>
-      </div>
-    </div>
-    <!-- Farmers -->
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">👨‍🌾 Farmers (${farmers.length})</div>
-      ${farmers.length===0
-        ?'<div style="color:var(--muted);font-size:13px">No farmers assigned</div>'
-        :farmers.map(f=>{
-          const debt=myDebts.filter(d=>d.farmerId===f.id&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
-            <div><div style="font-weight:600;font-size:13px">${f.name} ${f.role==='main'?'<span class="badge badge-gold" style="font-size:9px">MAIN</span>':''}</div>
-            <div style="font-size:11px;color:var(--muted)">${f.phone||'—'} · ${f.sharePercentage||50}% share</div></div>
-            ${debt>0?`<span style="font-size:12px;color:var(--danger);font-weight:700">${fmtMoney(debt)} debt</span>`:'<span class="badge badge-green">No debt</span>'}
-          </div>`;}).join('')}
-    </div>
-    <!-- Expenses -->
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">💸 Expenses (${exp.length})</div>
-      ${exp.length===0
-        ?'<div style="color:var(--muted);font-size:13px">No expenses</div>'
-        :exp.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5).map(e=>`
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div><div style="font-size:13px;font-weight:600">${CAT_ICON[e.type]||'📦'} ${e.type}</div><div style="font-size:11px;color:var(--muted)">${e.date}${e.description?' · '+e.description:''}</div></div>
-            <span style="font-weight:700;color:var(--danger);font-size:13px">${fmtMoney(e.amount)}</span>
-          </div>`).join('')}
-      ${exp.length>5?`<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px">+${exp.length-5} more expenses</div>`:''}
-    </div>
-    <!-- Harvests -->
-    <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🌾 Harvests (${harv.length})</div>
-      ${harv.length===0
-        ?'<div style="color:var(--muted);font-size:13px">No harvests yet</div>'
-        :harv.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>`
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div><div style="font-size:13px;font-weight:600">🌾 ${h.crop}</div><div style="font-size:11px;color:var(--muted)">${h.date} · ${h.qty} ${h.unit}</div></div>
-            <div style="text-align:right"><div style="font-weight:700;color:var(--primary);font-size:13px">${fmtMoney(h.landlordShare)}</div><div style="font-size:10px;color:var(--muted)">my share</div></div>
-          </div>`).join('')}
-    </div>
-    <button class="btn btn-outline btn-sm btn-full" onclick="printFarmReport('${farmId}')">🖨️ Print Report</button>`;
-  openModal('modal-farm-detail');
-};
-
-// ── Print ─────────────────────────────────────────────────────
+// ── Print ─────────────────────────────────────────────────
 window.printFarmReport=function(farmId){
   const farm=myFarms.find(f=>f.id===farmId);if(!farm)return;
   const exp=myExpenses.filter(e=>e.farmId===farmId);
@@ -500,36 +502,14 @@ window.printFarmReport=function(farmId){
   const totalExp=exp.reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=harv.reduce((s,h)=>s+Number(h.landlordShare||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:600px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.income{color:#16a34a;font-weight:700}.expense{color:#dc2626;font-weight:700}.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
-  <h1>${farm.name} — Landlord Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
-  <div class="summary">
-    <div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="expense" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="income" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div>
-  </div>
-  <h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="expense">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}
-  <h2>Harvests (My Share)</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="income">₨${Number(h.landlordShare||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:600px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>${farm.name} — Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div><h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="exp">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<h2>Harvests (My Share)</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="inc">₨${Number(h.landlordShare||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
-
 window.printFullReport=function(){
   const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.landlordShare||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.income{color:#16a34a;font-weight:700}.expense{color:#dc2626;font-weight:700}.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
-  <h1>🌾 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
-  <div class="summary">
-    <div class="box"><div style="font-size:10px;color:#666">TOTAL EXPENSES</div><div class="expense" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="income" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div>
-  </div>
-  ${myFarms.map(f=>{
-    const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
-    const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
-    return `<h2>🌱 ${f.name} — Profit: ₨${(inc-exp).toLocaleString()}</h2><div class="row"><span>Expenses</span><span class="expense">₨${exp.toLocaleString()}</span></div><div class="row"><span>My Income</span><span class="income">₨${inc.toLocaleString()}</span></div>`;
-  }).join('')}
-  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body><h1>🌾 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p><div class="sum"><div class="box"><div style="font-size:10px;color:#666">EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">MY INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>${myFarms.map(f=>{const e=myExpenses.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.amount||0),0);const i=myHarvests.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.landlordShare||0),0);return `<h2>🌱 ${f.name} — Profit: ₨${(i-e).toLocaleString()}</h2><div class="row"><span>Expenses</span><span class="exp">₨${e.toLocaleString()}</span></div><div class="row"><span>My Income</span><span class="inc">₨${i.toLocaleString()}</span></div>`;}).join('')}<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
 </script>
