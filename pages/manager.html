@@ -29,6 +29,7 @@
       <button class="nav-item" data-tab-btn="debts"><span class="nav-icon">📋</span>Farmer Debts</button>
       <button class="nav-item" data-tab-btn="harvests"><span class="nav-icon">🌾</span>Harvests</button>
       <button class="nav-item" data-tab-btn="inventory"><span class="nav-icon">📦</span>Inventory</button>
+      <button class="nav-item" data-tab-btn="reports"><span class="nav-icon">📈</span>Reports</button>
     </nav>
     <div class="sidebar-footer">
       <button class="btn btn-ghost btn-sm btn-full mb-8" onclick="toggleTheme()">🌙 Theme</button>
@@ -142,6 +143,26 @@
         <div class="stats-grid mb-16" id="inv-stats"></div>
         <div class="card">
           <div id="inventory-list"></div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div data-tab-content="reports" class="hidden">
+        <div class="section-header">
+          <div><div class="section-title">📈 Reports</div><div class="section-sub">Profit & loss summary</div></div>
+          <button class="btn btn-outline btn-sm" onclick="printFullReport()">🖨️ Print All</button>
+        </div>
+        <!-- Summary Stats -->
+        <div class="stats-grid mb-16" id="report-stats"></div>
+        <!-- Per Farm -->
+        <div class="card mb-16">
+          <div class="card-header"><span class="card-title">🌱 Per Farm Breakdown</span></div>
+          <div id="report-farms"></div>
+        </div>
+        <!-- Farmer Debts -->
+        <div class="card mb-16">
+          <div class="card-header"><span class="card-title">📋 Farmer Debt Summary</span></div>
+          <div id="report-debts"></div>
         </div>
       </div>
 
@@ -366,14 +387,17 @@ document.getElementById('sidebar-overlay').addEventListener('click',()=>{documen
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── Tabs ──────────────────────────────────────────────────
-const TAB_TITLES={overview:'Overview',farms:'Farms',farmers:'Farmers',expenses:'Expenses',debts:'Farmer Debts',harvests:'Harvests',inventory:'Inventory'};
+const TAB_TITLES={overview:'Overview',farms:'Farms',farmers:'Farmers',expenses:'Expenses',debts:'Farmer Debts',harvests:'Harvests',inventory:'Inventory',reports:'Reports'};
 window.switchTab=function(tab){
   document.querySelectorAll('[data-tab-btn]').forEach(b=>b.classList.toggle('active',b.dataset.tabBtn===tab));
   document.querySelectorAll('[data-tab-content]').forEach(c=>c.classList.toggle('hidden',c.dataset.tabContent!==tab));
   document.getElementById('page-title').textContent=TAB_TITLES[tab]||tab;
   closeSidebar();
 };
-document.querySelectorAll('[data-tab-btn]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tabBtn)));
+document.querySelectorAll('[data-tab-btn]').forEach(b=>b.addEventListener('click',()=>{
+  switchTab(b.dataset.tabBtn);
+  if(b.dataset.tabBtn==='reports') renderReports();
+}));
 
 // ── Online ────────────────────────────────────────────────
 function updateOnline(){const on=navigator.onLine;document.getElementById('online-dot').classList.toggle('off',!on);document.getElementById('offline-bar').classList.toggle('show',!on);}
@@ -764,7 +788,7 @@ window.addDebt=async function(){
   if(!farmerId||!amount||!date){showAlert('debt-alert','⚠️ Farmer, amount and date are required.');return;}
   btn.disabled=true;btn.textContent='⏳ Saving...';
   try{
-    await addDoc(collection(db,'debts'),{farmerId,amount:Number(amount),date,reason,status:'pending',managerId:ME.uid,createdAt:serverTimestamp()});
+    await addDoc(collection(db,'debts'),{farmerId,amount:Number(amount),date,reason,status:'pending',managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     toast('✅ Debt recorded!');closeModal('modal-add-debt');
     ['debt-amount','debt-reason'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
@@ -853,7 +877,7 @@ window.addInventory=async function(){
   if(!name||!qty){showAlert('inv-alert','⚠️ Name and quantity are required.');return;}
   btn.disabled=true;btn.textContent='⏳ Adding...';
   try{
-    await addDoc(collection(db,'inventory'),{name,category,unit,quantity:Number(qty),minStock:Number(min||0),pricePerUnit:Number(price||0),managerId:ME.uid,createdAt:serverTimestamp()});
+    await addDoc(collection(db,'inventory'),{name,category,unit,quantity:Number(qty),minStock:Number(min||0),pricePerUnit:Number(price||0),managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     toast(`✅ ${name} added!`);closeModal('modal-add-inventory');
     ['inv-name','inv-qty','inv-min','inv-price'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
@@ -921,6 +945,125 @@ window.printFarmerLedger=function(farmerId){
   <h1>👨‍🌾 ${f.name} — Ledger</h1><p>Total Debt: ₨${totalDebt.toLocaleString()} · Paid: ₨${paidDebt.toLocaleString()}</p>
   <h2>All Debts</h2>${debts.map(d=>`<div class="row"><span>${d.date} — ${d.reason||'Debt'}</span><span class="${d.status==='paid'?'paid':'pending'}">₨${Number(d.amount||0).toLocaleString()} (${d.status})</span></div>`).join('')||'<p>No debts</p>'}
   <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.close();
+};
+
+// ── Reports ───────────────────────────────────────────────
+function renderReports(){
+  const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
+  const totalDebt=myDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+  const profit=totalInc-totalExp;
+
+  document.getElementById('report-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Total Expenses</div><div class="stat-value" style="font-size:18px;color:var(--danger)">${fmtMoney(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">🌾</div><div class="stat-label">Total Income</div><div class="stat-value" style="font-size:18px;color:var(--primary)">${fmtMoney(totalInc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:18px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Farmer Debts</div><div class="stat-value" style="font-size:18px;color:var(--warning)">${fmtMoney(totalDebt)}</div></div>`;
+
+  // Per farm
+  document.getElementById('report-farms').innerHTML=myFarms.length===0
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div></div>`
+    :myFarms.map(f=>{
+      const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
+      const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+      const lInc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
+      const profit=inc-exp;
+      const farmers=myFarmers.filter(fr=>fr.farmId===f.id).length;
+      const harvests=myHarvests.filter(h=>h.farmId===f.id).length;
+      return `<div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <div style="font-weight:700;font-size:14px">${f.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres · ${farmers} farmers · ${harvests} harvests</div>
+          </div>
+          <span style="font-weight:800;font-size:15px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);font-weight:700">EXPENSES</div>
+            <div style="font-weight:700;color:var(--danger);font-size:12px">${fmtMoney(exp)}</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);font-weight:700">TOTAL INC</div>
+            <div style="font-weight:700;color:var(--primary);font-size:12px">${fmtMoney(inc)}</div>
+          </div>
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
+            <div style="font-size:9px;color:var(--muted);font-weight:700">LANDLORD</div>
+            <div style="font-weight:700;color:var(--primary);font-size:12px">${fmtMoney(lInc)}</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️ Farm Report</button>
+        </div>
+      </div>`;}).join('');
+
+  // Farmer debts
+  document.getElementById('report-debts').innerHTML=myFarmers.length===0
+    ?`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers yet</div></div>`
+    :myFarmers.map(f=>{
+      const farm=myFarms.find(fm=>fm.id===f.farmId);
+      const allDebts=myDebts.filter(d=>d.farmerId===f.id);
+      const activeDebt=allDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+      const paidDebt=allDebts.filter(d=>d.status==='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+          <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-dim);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);flex-shrink:0">${f.name.charAt(0).toUpperCase()}</div>
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:13px">${f.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${f.sharePercentage||50}% share</div>
+            ${paidDebt>0?`<div style="font-size:11px;color:var(--primary)">Paid: ${fmtMoney(paidDebt)}</div>`:''}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:10px">
+          ${activeDebt>0
+            ?`<div style="font-weight:800;color:var(--danger);font-size:14px">${fmtMoney(activeDebt)}</div><div style="font-size:10px;color:var(--muted)">active debt</div>`
+            :`<span class="badge badge-green">No debt</span>`}
+        </div>
+      </div>`;}).join('');
+}
+
+// ── Print Full Report ──────────────────────────────────────
+window.printFullReport=function(){
+  const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>AgriFlow Report</title>
+  <style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto}
+  h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px;border-bottom:2px solid #16a34a;padding-bottom:4px}
+  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:13px}
+  .inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}
+  .sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
+  .box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}
+  .farm-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}
+  </style></head><body>
+  <h1>📋 AgriFlow — Manager Report</h1>
+  <p>${ME.name} · Generated: ${new Date().toLocaleDateString('en-PK',{day:'numeric',month:'long',year:'numeric'})}</p>
+  <div class="sum">
+    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">TOTAL EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div>
+    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">TOTAL INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div>
+    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div>
+  </div>
+  <h2>Per Farm Summary</h2>
+  ${myFarms.map(f=>{
+    const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
+    const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+    const farmers=myFarmers.filter(fr=>fr.farmId===f.id);
+    return `<div class="farm-box">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">${f.name} — ${f.crop||'No crop'} · ${f.area||'?'} acres</div>
+      <div class="row"><span>Expenses</span><span class="exp">₨${exp.toLocaleString()}</span></div>
+      <div class="row"><span>Income</span><span class="inc">₨${inc.toLocaleString()}</span></div>
+      <div class="row"><span><strong>Profit</strong></span><span style="font-weight:800;color:${inc-exp>=0?'#16a34a':'#dc2626'}">₨${(inc-exp).toLocaleString()}</span></div>
+      <div style="margin-top:8px;font-size:12px;color:#666">Farmers: ${farmers.map(fr=>fr.name).join(', ')||'None'}</div>
+    </div>`;}).join('')}
+  <h2>Farmer Debt Summary</h2>
+  ${myFarmers.map(f=>{
+    const debt=myDebts.filter(d=>d.farmerId===f.id&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+    const farm=myFarms.find(fm=>fm.id===f.farmId);
+    return `<div class="row"><span>${f.name} (${farm?.name||'—'})</span><span class="${debt>0?'exp':'inc'}">${debt>0?'₨'+debt.toLocaleString()+' owed':'No debt'}</span></div>`;
+  }).join('')}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script>
+  </body></html>`);
   w.document.close();
 };
 </script>
