@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>AgriFlow — Login</title>
   <meta name="theme-color" content="#0a0f0a"/>
+  <link rel="manifest" href="../manifest.json"/>
+  <link rel="apple-touch-icon" href="images/icon-192.png"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <link rel="stylesheet" href="css/style.css"/>
   <style>
     body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
@@ -143,13 +148,16 @@ window.doLogin = async function() {
 
     setBusy('⏳ Loading account...');
 
-    // Step 2: Fetch Firestore user doc
+    // Step 2: Fetch Firestore user doc (with 10s timeout)
     let snap;
     try {
-      snap = await getDoc(doc(db, 'users', uid));
+      const timeout = new Promise((_,reject) =>
+        setTimeout(() => reject(new Error('Database timeout — check Firestore rules')), 10000)
+      );
+      snap = await Promise.race([getDoc(doc(db, 'users', uid)), timeout]);
     } catch (err) {
       await signOut(auth);
-      showErr('❌ Database error: ' + err.message);
+      showErr('❌ ' + err.message);
       setReady(); return;
     }
 
@@ -192,6 +200,25 @@ window.doLogin = async function() {
     setReady();
   }
 };
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/AgriFlow/sw.js')
+      .then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              sw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      })
+      .catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
