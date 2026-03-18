@@ -466,14 +466,18 @@ const CAT_ICON={seeds:'🌱',fertilizer:'🧪',diesel:'⛽',labor:'👷',pestici
 window.doLogout=async function(){if(!confirm('Logout?'))return;await signOut(auth);window.location.href='../index.html';};
 
 // ── Auth Guard ────────────────────────────────────────────
+let _authDone = false;
 onAuthStateChanged(auth,async user=>{
-  if(!user){window.location.href='../index.html';return;}
+  if(_authDone) return;
+  _authDone = true;
+  if(!user){window.location.replace('../index.html');return;}
   try{
-    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Connection timeout — check internet')),10000));
+    const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Connection timeout')),12000));
     const snap=await Promise.race([getDoc(doc(db,'users',user.uid)),timeout]);
-    if(!snap.exists()){window.location.href='../index.html';return;}
+    if(!snap.exists()){loaderError('Account not found. Contact admin.');return;}
     const data=snap.data();
-    if(data.role!=='manager'||data.status==='suspended'){window.location.href='../index.html';return;}
+    if(data.role!=='manager'){loaderError('Wrong account type: '+data.role);return;}
+    if(data.status==='suspended'){loaderError('Account suspended.');return;}
     ME={uid:user.uid,...data};
     document.getElementById('user-name').textContent=ME.name||'Manager';
     document.getElementById('user-avatar').textContent=initial(ME.name);
