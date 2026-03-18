@@ -201,23 +201,9 @@ window.doLogin = async function() {
   }
 };
 </script>
-
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/AgriFlow/sw.js')
-      .then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const sw = reg.installing;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-              sw.postMessage('SKIP_WAITING');
-            }
-          });
-        });
-      })
-      .catch(() => {});
-  });
+  navigator.serviceWorker.register('/AgriFlow/sw.js').catch(() => {});
 }
 </script>
 </body>
