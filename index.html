@@ -99,121 +99,119 @@ const app  = initializeApp(CONFIG);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 
-const ROUTES = {admin:'/AgriFlow/pages/admin.html',landlord:'/AgriFlow/pages/landlord.html',manager:'/AgriFlow/pages/manager.html'};
-function redirectByRole(role){if(ROUTES[role])window.location.href=ROUTES[role];}
-async function getUserDoc(uid){try{const s=await getDoc(doc(db,'users',uid));return s.exists()?s.data():null;}catch{return null;}}
-function initTheme(){const t=localStorage.getItem('af_theme')||'dark';document.documentElement.setAttribute('data-theme',t);}
+// ── Helpers ───────────────────────────────────────────────
+const ROUTES = {
+  admin:    'pages/admin.html',
+  landlord: 'pages/landlord.html',
+  manager:  'pages/manager.html'
+};
+
+function initTheme(){document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');}
+window.toggleTheme=function(){const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
 function showAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
 function clearAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
-function showLoader(msg){const el=document.getElementById('page-loader');if(el){el.querySelector('.loader-msg').textContent=msg||'Loading...';el.classList.remove('hidden');}}
-function hideLoader(){document.getElementById('page-loader')?.classList.add('hidden');}
-
-// expose to onclick
-window.toggleTheme = function(){
-  const cur=document.documentElement.getAttribute('data-theme');
-  const next=cur==='dark'?'light':'dark';
-  document.documentElement.setAttribute('data-theme',next);
-  localStorage.setItem('af_theme',next);
-};
+function resetBtn(){const b=document.getElementById('login-btn');b.disabled=false;b.textContent='Sign In';}
 
 initTheme();
 
-// Password toggle
-document.getElementById('pass-toggle').addEventListener('click', () => {
-  const inp = document.getElementById('password');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
+// ── Password toggle ────────────────────────────────────────
+document.getElementById('pass-toggle').addEventListener('click',()=>{
+  const inp=document.getElementById('password');
+  inp.type=inp.type==='password'?'text':'password';
 });
 
-// Enter key
-['email','password'].forEach(id =>
-  document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') doLogin();
-  })
+// ── Enter key ──────────────────────────────────────────────
+['email','password'].forEach(id=>
+  document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();})
 );
 
-// ── Check if already logged in ────────────────────────────
-let authChecked = false;
+// ── Auto-redirect if already logged in ────────────────────
+// Use a flag so this only runs once and never interferes with login
+let redirecting = false;
 onAuthStateChanged(auth, async user => {
-  if (authChecked) return;   // only run once
-  authChecked = true;
-  if (!user) return;
-
-  // Already logged in — fetch role and redirect silently
-  showLoader('Redirecting...');
+  if (redirecting || !user) return;
+  // Only auto-redirect if user is NOT actively trying to login
+  const btn = document.getElementById('login-btn');
+  if (btn.disabled) return; // login in progress — don't interfere
   try {
-    const data = await getUserDoc(user.uid);
-    if (data && data.role && data.status !== 'suspended') {
-      const ok = redirectByRole(data.role);
-      if (!ok) { await signOut(auth); hideLoader(); }
-    } else {
-      await signOut(auth);
-      hideLoader();
+    redirecting = true;
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.role && d.status !== 'suspended' && ROUTES[d.role]) {
+        window.location.href = ROUTES[d.role];
+        return;
+      }
     }
-  } catch {
     await signOut(auth);
-    hideLoader();
+    redirecting = false;
+  } catch {
+    redirecting = false;
   }
 });
 
-// ── Login ─────────────────────────────────────────────────
+// ── Login ──────────────────────────────────────────────────
 window.doLogin = async function() {
-  const email  = document.getElementById('email').value.trim();
-  const pass   = document.getElementById('password').value;
-  const btn    = document.getElementById('login-btn');
+  const email = document.getElementById('email').value.trim();
+  const pass  = document.getElementById('password').value;
+  const btn   = document.getElementById('login-btn');
 
   clearAlert('login-alert');
-
-  if (!email || !pass) {
-    showAlert('login-alert', '⚠️ Please enter email and password.');
-    return;
-  }
+  if (!email || !pass) { showAlert('login-alert','⚠️ Please enter email and password.'); return; }
 
   btn.disabled = true;
   btn.textContent = '⏳ Signing in...';
+  redirecting = true; // block onAuthStateChanged from firing
 
   try {
-    // Step 1: Firebase Auth
+    // Step 1: Auth
     const cred = await signInWithEmailAndPassword(auth, email, pass);
 
-    // Step 2: Fetch Firestore doc
-    const data = await getUserDoc(cred.user.uid);
-
-    if (!data) {
+    // Step 2: Firestore — with explicit error message if it fails
+    let snap;
+    try {
+      snap = await getDoc(doc(db, 'users', cred.user.uid));
+    } catch (firestoreErr) {
       await signOut(auth);
-      showAlert('login-alert', '❌ Account setup incomplete. Contact your admin.');
-      btn.disabled = false; btn.textContent = 'Sign In';
-      return;
+      showAlert('login-alert', '❌ Could not load account: ' + firestoreErr.message);
+      resetBtn(); redirecting = false; return;
     }
+
+    if (!snap.exists()) {
+      await signOut(auth);
+      showAlert('login-alert', '❌ Account not set up. Contact admin.');
+      resetBtn(); redirecting = false; return;
+    }
+
+    const data = snap.data();
 
     if (data.status === 'suspended') {
       await signOut(auth);
-      showAlert('login-alert', '🚫 Your account is suspended. Contact admin.');
-      btn.disabled = false; btn.textContent = 'Sign In';
-      return;
+      showAlert('login-alert', '🚫 Account suspended. Contact admin.');
+      resetBtn(); redirecting = false; return;
     }
 
-    if (!data.role || !['admin','landlord','manager'].includes(data.role)) {
+    if (!data.role || !ROUTES[data.role]) {
       await signOut(auth);
-      showAlert('login-alert', `❌ Unknown role "${data.role}". Contact admin.`);
-      btn.disabled = false; btn.textContent = 'Sign In';
-      return;
+      showAlert('login-alert', `❌ Unknown role: "${data.role}". Contact admin.`);
+      resetBtn(); redirecting = false; return;
     }
 
-    // Step 3: Redirect exactly once
-    showLoader('Redirecting...');
-    redirectByRole(data.role);
+    // Step 3: Redirect
+    btn.textContent = '✅ Redirecting...';
+    window.location.href = ROUTES[data.role];
 
   } catch (e) {
     const MSGS = {
-      'auth/user-not-found':    '❌ No account with this email.',
-      'auth/wrong-password':    '❌ Incorrect password.',
-      'auth/invalid-email':     '❌ Invalid email format.',
-      'auth/invalid-credential':'❌ Email or password is incorrect.',
-      'auth/too-many-requests': '⚠️ Too many attempts. Try again later.',
+      'auth/user-not-found':     '❌ No account with this email.',
+      'auth/wrong-password':     '❌ Incorrect password.',
+      'auth/invalid-email':      '❌ Invalid email format.',
+      'auth/invalid-credential': '❌ Email or password is incorrect.',
+      'auth/too-many-requests':  '⚠️ Too many attempts. Try again later.',
       'auth/network-request-failed': '📶 No internet connection.',
     };
     showAlert('login-alert', MSGS[e.code] || '❌ ' + e.message);
-    btn.disabled = false; btn.textContent = 'Sign In';
+    resetBtn(); redirecting = false;
   }
 };
 </script>
