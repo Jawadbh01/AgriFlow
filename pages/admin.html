@@ -57,6 +57,10 @@
       <div data-tab-content="overview">
         <div class="section-header">
           <div><div class="section-title">Platform Overview</div><div class="section-sub" id="overview-sub"></div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="openM('modal-create-manager')">➕ Manager</button>
+            <button class="btn btn-primary btn-sm" onclick="openM('modal-create-landlord')">➕ Landlord</button>
+          </div>
         </div>
         <div class="stats-grid mb-16" id="stats-grid"></div>
         <div class="card">
@@ -69,6 +73,7 @@
       <div data-tab-content="landlords" class="hidden">
         <div class="section-header">
           <div><div class="section-title">👑 Landlords</div><div class="section-sub" id="ll-sub"></div></div>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-create-landlord')">➕ Add</button>
         </div>
         <div class="card">
           <div class="card-header"><input class="form-input" style="width:100%" id="ll-search" placeholder="🔍 Search..." oninput="filterLL(this.value)"/></div>
