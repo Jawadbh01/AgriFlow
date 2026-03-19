@@ -1,13 +1,13 @@
 const CACHE = 'agriflow-static-v2';
 
 const STATIC = [
-  '/AgriFlow/css/style.css',
-  '/AgriFlow/images/icon-192.png',
-  '/AgriFlow/images/icon-512.png',
-  '/AgriFlow/index.html',
-  '/AgriFlow/pages/admin.html',
-  '/AgriFlow/pages/landlord.html',
-  '/AgriFlow/pages/manager.html',
+  '/css/style.css',
+  '/images/icon-192.png',
+  '/images/icon-512.png',
+  '/index.html',
+  '/pages/admin.html',
+  '/pages/landlord.html',
+  '/pages/manager.html',
 ];
 
 // Install — cache everything
