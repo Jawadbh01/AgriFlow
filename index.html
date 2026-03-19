@@ -58,10 +58,16 @@
   </div>
 </div>
 
+<div id="page-loader" class="page-loader hidden">
+  <div class="loader-brand"><div class="loader-icon">🌾</div></div>
+  <div class="spinner"></div>
+  <div class="loader-msg">Opening dashboard...</div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, browserLocalPersistence, setPersistence,
-         signInWithEmailAndPassword, signOut }
+         signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -81,21 +87,20 @@ const ROUTES = {
   manager:  'pages/manager.html'
 };
 
-const app = initializeApp(CONFIG);
+const app  = initializeApp(CONFIG);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db   = getFirestore(app);
 
-// Set persistence so session survives app close
+// Set persistence before anything else
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-// Theme
+// ── Theme ─────────────────────────────────────────────────
 function initTheme() {
   const t = localStorage.getItem('af_theme') || 'dark';
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('theme-btn').textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
 }
 initTheme();
-
 document.getElementById('theme-btn').onclick = function() {
   const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', n);
@@ -103,13 +108,13 @@ document.getElementById('theme-btn').onclick = function() {
   this.textContent = n === 'dark' ? '☀️ Light' : '🌙 Dark';
 };
 
-// Password toggle
+// ── Password toggle ───────────────────────────────────────
 document.getElementById('pass-btn').onclick = function() {
   const inp = document.getElementById('password');
   inp.type = inp.type === 'password' ? 'text' : 'password';
 };
 
-// Enter key
+// ── Enter key ─────────────────────────────────────────────
 document.getElementById('email').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('password').focus();
 });
@@ -117,7 +122,66 @@ document.getElementById('password').addEventListener('keydown', e => {
   if (e.key === 'Enter') login();
 });
 
-// Login button
+// ── Check if already logged in ────────────────────────────
+// This runs first — if user is already logged in, skip login page
+function showLoader() {
+  document.getElementById('page-loader').classList.remove('hidden');
+  document.querySelector('.wrap').style.display = 'none';
+}
+
+function goToDashboard(role) {
+  if (ROUTES[role]) {
+    showLoader();
+    window.location.replace(ROUTES[role]);
+  }
+}
+
+// Check localStorage cache first (works offline)
+function checkCachedSession() {
+  const roles = ['admin', 'landlord', 'manager'];
+  for (const role of roles) {
+    try {
+      const cached = JSON.parse(localStorage.getItem('af_user_' + role) || 'null');
+      if (cached && cached.role === role && cached.status !== 'suspended') {
+        // Valid cached session — go directly to dashboard
+        goToDashboard(role);
+        return true;
+      }
+    } catch(e) {}
+  }
+  return false;
+}
+
+// Try cache immediately (no network needed)
+if (checkCachedSession()) {
+  // Already redirecting
+} else {
+  // No cache — check Firebase Auth (needs network)
+  const unsub = onAuthStateChanged(auth, async user => {
+    unsub(); // only run once
+    if (!user) return; // no session, show login form
+
+    try {
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.role && data.status !== 'suspended' && ROUTES[data.role]) {
+          // Save to cache for next time
+          try {
+            localStorage.setItem('af_user_' + data.role, JSON.stringify({
+              uid: user.uid, ...data, cachedAt: Date.now()
+            }));
+          } catch(e) {}
+          goToDashboard(data.role);
+        }
+      }
+    } catch(e) {
+      // Offline and no cache — show login form, that's fine
+    }
+  });
+}
+
+// ── Login button ──────────────────────────────────────────
 document.getElementById('login-btn').onclick = login;
 
 function showErr(msg) {
@@ -138,16 +202,19 @@ async function login() {
     return;
   }
 
+  // Check if offline
+  if (!navigator.onLine) {
+    showErr('📶 No internet. Cannot login for first time without connection.');
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = '⏳ Signing in...';
 
   try {
-    // Sign in
     const cred = await signInWithEmailAndPassword(auth, email, pass);
-
     btn.textContent = '⏳ Loading...';
 
-    // Get user role
     const snap = await getDoc(doc(db, 'users', cred.user.uid));
 
     if (!snap.exists()) {
@@ -173,22 +240,15 @@ async function login() {
       return;
     }
 
-    // Cache user data for offline use
+    // Save to cache — this is what enables offline access next time
     try {
-      localStorage.setItem('af_user_'+data.role, JSON.stringify({
-        uid: cred.user.uid,
-        name: data.name,
-        role: data.role,
-        status: data.status,
-        landlordId: data.landlordId || '',
-        email: data.email || email,
-        cachedAt: Date.now()
+      localStorage.setItem('af_user_' + data.role, JSON.stringify({
+        uid: cred.user.uid, ...data, cachedAt: Date.now()
       }));
     } catch(e) {}
 
-    // Redirect
-    btn.textContent = '✅ Redirecting...';
-    window.location.replace(ROUTES[data.role]);
+    btn.textContent = '✅ Opening dashboard...';
+    goToDashboard(data.role);
 
   } catch (e) {
     const MSGS = {
@@ -197,7 +257,7 @@ async function login() {
       'auth/invalid-email':      '❌ Invalid email format.',
       'auth/invalid-credential': '❌ Email or password is incorrect.',
       'auth/too-many-requests':  '⚠️ Too many attempts. Try again later.',
-      'auth/network-request-failed': '📶 No internet connection.',
+      'auth/network-request-failed': '📶 No internet. Connect and try again.',
     };
     showErr(MSGS[e.code] || '❌ ' + e.message);
     btn.disabled = false;
