@@ -420,17 +420,20 @@
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged, signOut }
+import { getAuth, onAuthStateChanged, signOut,
+         indexedDBLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, addDoc, updateDoc, deleteDoc,
+import { getFirestore, initializeFirestore, persistentLocalCache,
+         doc, getDoc, addDoc, updateDoc, deleteDoc,
          collection, getDocs, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
 const app=initializeApp(CONFIG);
 const auth=getAuth(app);
-setPersistence(auth,browserLocalPersistence).catch(()=>{});
-const db=getFirestore(app);
+setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
+let db;
+try{ db=initializeFirestore(app,{localCache:persistentLocalCache()}); }catch(e){ db=getFirestore(app); }
 
 let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myHarvests=[], myInventory=[], myNotifs=[];
 
@@ -492,97 +495,58 @@ function ini(n){return(n||'?').charAt(0).toUpperCase();}
 const CAT={diesel:'⛽',fertilizer:'🧪',seeds:'🌱',labor:'👷',pesticide:'💊',tractor:'🚜',water:'💧',equipment:'🔧',other:'📦'};
 
 // ── Logout ────────────────────────────────────────────────
-window.doLogout=async function(){if(!confirm('Logout?'))return;try{localStorage.removeItem('af_user');}catch(e){}await signOut(auth);window.location.href='../index.html';};
+window.doLogout=async function(){if(!confirm('Logout?'))return;try{localStorage.removeItem('af_user_manager');}catch(e){}await signOut(auth);window.location.href='../index.html';};
 
-// ── Auth ──────────────────────────────────────────────────
 // ── Auth ──────────────────────────────────────────────────
 const _waitForAuth=new Promise(resolve=>{const u=onAuthStateChanged(auth,user=>{u();resolve(user);});});
 _waitForAuth.then(async user=>{
-  // Try to get user from Firebase, fall back to localStorage cache if offline
-  let uid = user ? user.uid : null;
-
-  // If no Firebase user, check localStorage cache
-  if (!uid) {
-    try {
-      const cached = JSON.parse(localStorage.getItem('af_user') || 'null');
-      if (cached && cached.role === 'manager' && cached.status !== 'suspended') {
-        // Use cached data — offline mode
-        ME = cached;
-        document.getElementById('user-name').textContent = ME.name || 'Manager';
-        document.getElementById('user-avatar').textContent = ini(ME.name);
-        document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
-        await loadAll();
-        hideLoader();
-        return;
-      }
-    } catch(e) {}
-    window.location.replace('../index.html');
-    return;
-  }
-
-  try {
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timeout')),12000));
-    const snap=await Promise.race([getDoc(doc(db,'users',uid)),timeout]);
-    if(!snap.exists()){
-      // Try cache
-      try {
-        const cached=JSON.parse(localStorage.getItem('af_user')||'null');
-        if(cached&&cached.uid===uid&&cached.role==='manager'){
-          ME=cached;
-          document.getElementById('user-name').textContent=ME.name||'Manager';
-          document.getElementById('user-avatar').textContent=ini(ME.name);
-          document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
-          await loadAll();
-          hideLoader();
-          return;
-        }
-      }catch(e){}
-      loaderError('Account not found.');return;
-    }
-    const data=snap.data();
-    if(data.role!=='manager'){loaderError('Wrong role: '+data.role);return;}
-    if(data.status==='suspended'){loaderError('Account suspended.');return;}
-    ME={uid,...data};
-    // Update cache
-    try{localStorage.setItem('af_user',JSON.stringify({uid,...data,cachedAt:Date.now()}));}catch(e){}
-    document.getElementById('user-name').textContent=ME.name||'Manager';
-    document.getElementById('user-avatar').textContent=ini(ME.name);
-    document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
-    await loadAll();
-    hideLoader();
-  }catch(e){
-    // Try cache on any error (e.g. offline)
+  const uid=user?user.uid:null;
+  if(!uid){
     try{
-      const cached=JSON.parse(localStorage.getItem('af_user')||'null');
-      if(cached&&cached.uid===uid&&cached.role==='manager'&&cached.status!=='suspended'){
+      const cached=JSON.parse(localStorage.getItem('af_user_manager')||'null');
+      if(cached&&cached.role==='manager'&&cached.status!=='suspended'){
         ME=cached;
         document.getElementById('user-name').textContent=ME.name||'Manager';
         document.getElementById('user-avatar').textContent=ini(ME.name);
-        document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
-        await loadAll();
-        hideLoader();
-        return;
+        document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
+        document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
+        await loadAll();hideLoader();return;
       }
-    }catch(ce){}
-    loaderError(e.message);
+    }catch(e){}
+    window.location.replace('../index.html');return;
   }
-});_waitForAuth.then(async user=>{
-  if(!user){window.location.replace('../index.html');return;}
   try{
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timeout')),12000));
-    const snap=await Promise.race([getDoc(doc(db,'users',user.uid)),timeout]);
-    if(!snap.exists()){loaderError('Account not found.');return;}
-    const data=snap.data();
-    if(data.role!=='manager'){loaderError('Wrong role: '+data.role);return;}
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Offline')),8000));
+    const snap=await Promise.race([getDoc(doc(db,'users',uid)),timeout]);
+    let data;
+    if(!snap.exists()){
+      const cached=JSON.parse(localStorage.getItem('af_user_manager')||'null');
+      if(cached&&cached.uid===uid&&cached.role==='manager'){data=cached;}
+      else{loaderError('Account not found.');return;}
+    }else{data=snap.data();}
+    if(data.role!=='manager'){loaderError('Access denied: '+data.role);return;}
     if(data.status==='suspended'){loaderError('Account suspended.');return;}
-    ME={uid:user.uid,...data};
+    ME={uid,...data};
+    try{localStorage.setItem('af_user_manager',JSON.stringify({uid,...data,cachedAt:Date.now()}));}catch(e){}
     document.getElementById('user-name').textContent=ME.name||'Manager';
     document.getElementById('user-avatar').textContent=ini(ME.name);
     document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
-    await loadAll();
-    hideLoader();
-  }catch(e){loaderError(e.message);}
+    await loadAll();hideLoader();
+  }catch(e){
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_user_manager')||'null');
+      if(cached&&cached.uid===uid&&cached.role==='manager'&&cached.status!=='suspended'){
+        ME=cached;
+        document.getElementById('user-name').textContent=ME.name||'Manager';
+        document.getElementById('user-avatar').textContent=ini(ME.name);
+        document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
+        document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
+        await loadAll();hideLoader();return;
+      }
+    }catch(ce){}
+    loaderError(e.message);
+  }
 });
 
 // ── Skeleton ──────────────────────────────────────────────
@@ -592,15 +556,7 @@ function showSkeleton(){
 }
 
 // ── Safe query ────────────────────────────────────────────
-async function safeGet(q){
-  try{
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
-    return await Promise.race([getDocs(q),timeout]);
-  }catch(e){
-    console.warn('Query failed:',e.message);
-    return{docs:[]};
-  }
-}
+async function safeGet(q){try{return await getDocs(q);}catch(e){console.warn('Query:',e.message);return{docs:[]};}}
 
 // ── Load All ──────────────────────────────────────────────
 async function loadAll(){
@@ -612,14 +568,14 @@ async function loadAll(){
     safeGet(query(collection(db,'expenses'),where('managerId','==',mid))),
     safeGet(query(collection(db,'harvests'),where('managerId','==',mid))),
     safeGet(query(collection(db,'inventory'),where('landlordId','==',lid))),
-    safeGet(query(collection(db,'notifications'),where('toUid','==',mid))),
+    safeGet(query(collection(db,'notifications'),where('toUid','==',mid),where('read','==',false))),
   ]);
   myFarms    =fS.docs.map(d=>({id:d.id,...d.data()}));
   myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
   myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
   myHarvests =hS.docs.map(d=>({id:d.id,...d.data()}));
   myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
-  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()})).filter(n=>!n.read);
+  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()}));
   populateSelects();
   renderOverview();renderFarms();renderFarmers(myFarmers);
   renderExpenses(myExpenses);renderHarvests();renderInventory();
