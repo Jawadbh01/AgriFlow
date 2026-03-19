@@ -617,11 +617,16 @@ async function loadAll(){
   myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
   myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
   myHarvests =hS.docs.map(d=>({id:d.id,...d.data()}));
-  // Load inventory only if landlordId exists
-  if(lid){
-    const iS=await safeGet(query(collection(db,'inventory'),where('landlordId','==',lid)));
-    myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
-  }
+  // Load inventory by managerId (manager's own) + landlordId (shared)
+  const [invByManager, invByLandlord]=await Promise.all([
+    safeGet(query(collection(db,'inventory'),where('managerId','==',mid))),
+    lid ? safeGet(query(collection(db,'inventory'),where('landlordId','==',lid))) : Promise.resolve({docs:[]}),
+  ]);
+  // Merge and deduplicate by id
+  const invMap={};
+  invByManager.docs.forEach(d=>{invMap[d.id]={id:d.id,...d.data()};});
+  invByLandlord.docs.forEach(d=>{invMap[d.id]={id:d.id,...d.data()};});
+  myInventory=Object.values(invMap);
   populateSelects();
   renderOverview();renderFarms();renderFarmers(myFarmers);
   renderExpenses(myExpenses);renderHarvests();renderInventory();
