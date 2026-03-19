@@ -2,8 +2,8 @@
   "name": "AgriFlow — Farm Management",
   "short_name": "AgriFlow",
   "description": "Smart farm management for rural Pakistan",
-  "start_url": "/AgriFlow/index.html",
-  "scope": "/AgriFlow/",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#080d08",
@@ -13,3 +13,4 @@
     { "src": "images/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
+
