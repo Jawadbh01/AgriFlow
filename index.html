@@ -175,7 +175,7 @@ async function login() {
 
     // Cache user data for offline use
     try {
-      localStorage.setItem('af_user', JSON.stringify({
+      localStorage.setItem('af_user_'+data.role, JSON.stringify({
         uid: cred.user.uid,
         name: data.name,
         role: data.role,
