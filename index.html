@@ -173,6 +173,19 @@ async function login() {
       return;
     }
 
+    // Cache user data for offline use
+    try {
+      localStorage.setItem('af_user', JSON.stringify({
+        uid: cred.user.uid,
+        name: data.name,
+        role: data.role,
+        status: data.status,
+        landlordId: data.landlordId || '',
+        email: data.email || email,
+        cachedAt: Date.now()
+      }));
+    } catch(e) {}
+
     // Redirect
     btn.textContent = '✅ Redirecting...';
     window.location.replace(ROUTES[data.role]);
