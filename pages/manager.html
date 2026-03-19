@@ -422,8 +422,7 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache,
-         doc, getDoc, addDoc, updateDoc, deleteDoc,
+import { getFirestore, doc, getDoc, addDoc, updateDoc, deleteDoc,
          collection, getDocs, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -431,8 +430,7 @@ const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farml
 const app=initializeApp(CONFIG);
 const auth=getAuth(app);
 setPersistence(auth,browserLocalPersistence).catch(()=>{});
-let db;
-try{ db=initializeFirestore(app,{localCache:persistentLocalCache()}); }catch(e){ db=getFirestore(app); }
+const db=getFirestore(app);
 
 let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myHarvests=[], myInventory=[], myNotifs=[];
 
