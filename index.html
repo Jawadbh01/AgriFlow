@@ -62,8 +62,7 @@
 
 <script type="module">
 import { initializeApp }            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut,
-         indexedDBLocalPersistence, setPersistence }
+import { initializeAuth, indexedDBLocalPersistence, signInWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache,
          doc, getDoc }
@@ -85,14 +84,14 @@ const ROUTES = {
 };
 
 const app  = initializeApp(CONFIG);
-const auth = getAuth(app);
+const auth = initializeAuth(app, {persistence: indexedDBLocalPersistence});
 let db;
 try { db = initializeFirestore(app, {localCache: persistentLocalCache()}); }
 catch(e) { db = getFirestore(app); }
 
 // ── Set persistence immediately ────────────────────────────
 // This is the key fix — must be done before ANY auth operation
-setPersistence(auth, indexedDBLocalPersistence).catch(() => {});
+ => {});
 
 // ── Theme ─────────────────────────────────────────────────
 function initTheme() {
