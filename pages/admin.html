@@ -185,7 +185,7 @@
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut,
+import { getAuth, onAuthStateChanged, signOut, indexedDBLocalPersistence, setPersistence,
          createUserWithEmailAndPassword,
          sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -202,6 +202,7 @@ const CONFIG = {
   appId:"1:922324809308:web:05c015ce12e55034e99899"
 };
 const app=initializeApp(CONFIG), auth=getAuth(app);
+setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
 let db;
 try {
   db = initializeFirestore(app, { localCache: persistentLocalCache() });
