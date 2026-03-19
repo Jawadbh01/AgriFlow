@@ -546,7 +546,7 @@ function showSkeleton(){
 }
 
 // ── Safe query ────────────────────────────────────────────
-async function safeGet(q){try{const t=new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000));return await Promise.race([getDocs(q),t]);}catch(e){console.warn('safeGet:',e.message);return{docs:[];};}}
+async function safeGet(q){try{const t=new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),6000));return await Promise.race([getDocs(q),t]);}catch(e){console.warn('safeGet:',e.message);return{docs:[]};} }
 
 // ── Load All ──────────────────────────────────────────────
 async function loadAll(){
