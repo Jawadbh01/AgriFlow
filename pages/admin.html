@@ -203,7 +203,6 @@ const CONFIG = {
 };
 const app=initializeApp(CONFIG), auth=getAuth(app);
 setPersistence(auth,browserLocalPersistence).catch(()=>{});
-=>{});
 const db=getFirestore(app);
 let ME=null, allUsers=[], allLandlords=[], allManagers=[], activeEmail='';
 
