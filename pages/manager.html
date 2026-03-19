@@ -445,7 +445,9 @@ window.addEventListener('online', async ()=>{
   pendingWrites=[];
   try{
     for(const w of toSync){
-      await addDoc(collection(db,w.col),w.data);
+      const syncData={...w.data, createdAt:serverTimestamp()};
+      delete syncData._offline;
+      await addDoc(collection(db,w.col),syncData);
     }
     localStorage.removeItem('af_pending_manager');
     toast('✅ All changes synced!','success');
@@ -459,8 +461,11 @@ window.addEventListener('online', async ()=>{
 // Offline-safe addDoc
 async function safeAdd(colName, data){
   if(!navigator.onLine){
-    // Queue for later
-    pendingWrites.push({col:colName, data:{...data}});
+    // Replace serverTimestamp with real date for serialization
+    const safeData={...data, createdAt:new Date().toISOString(), _offline:true};
+    delete safeData.serverTimestamp;
+    // Queue for later sync
+    pendingWrites.push({col:colName, data:safeData});
     try{localStorage.setItem('af_pending_manager',JSON.stringify(pendingWrites));}catch(e){}
     // Also update local arrays immediately so UI updates
     const fakeDoc={id:'pending_'+Date.now(),...data};
