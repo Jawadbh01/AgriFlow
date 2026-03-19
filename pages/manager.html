@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 -->
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
@@ -434,6 +434,47 @@ setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
 const db=getFirestore(app);
 
 let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myHarvests=[], myInventory=[], myNotifs=[];
+let pendingWrites=[];
+try{pendingWrites=JSON.parse(localStorage.getItem('af_pending_manager')||'[]');}catch(e){}
+
+// Sync pending writes when back online
+window.addEventListener('online', async ()=>{
+  if(pendingWrites.length===0)return;
+  toast('🔄 Syncing '+pendingWrites.length+' offline changes...','info');
+  const toSync=[...pendingWrites];
+  pendingWrites=[];
+  try{
+    for(const w of toSync){
+      await addDoc(collection(db,w.col),w.data);
+    }
+    localStorage.removeItem('af_pending_manager');
+    toast('✅ All changes synced!','success');
+    await loadAll();
+  }catch(e){
+    pendingWrites=toSync; // put back if failed
+    toast('⚠️ Sync failed: '+e.message,'error');
+  }
+});
+
+// Offline-safe addDoc
+async function safeAdd(colName, data){
+  if(!navigator.onLine){
+    // Queue for later
+    pendingWrites.push({col:colName, data:{...data}});
+    try{localStorage.setItem('af_pending_manager',JSON.stringify(pendingWrites));}catch(e){}
+    // Also update local arrays immediately so UI updates
+    const fakeDoc={id:'pending_'+Date.now(),...data};
+    if(colName==='farms')myFarms.push(fakeDoc);
+    else if(colName==='farmers')myFarmers.push(fakeDoc);
+    else if(colName==='expenses')myExpenses.push(fakeDoc);
+    else if(colName==='harvests')myHarvests.push(fakeDoc);
+    else if(colName==='inventory')myInventory.push(fakeDoc);
+    // Save updated cache
+    try{localStorage.setItem('af_data_manager',JSON.stringify({farms:myFarms,farmers:myFarmers,expenses:myExpenses,harvests:myHarvests,inventory:myInventory,cachedAt:Date.now()}));}catch(e){}
+    return fakeDoc;
+  }
+  return await addDoc(collection(db,colName),data);
+}
 
 // ── Theme ─────────────────────────────────────────────────
 const initTheme=()=>document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');
@@ -493,7 +534,7 @@ function ini(n){return(n||'?').charAt(0).toUpperCase();}
 const CAT={diesel:'⛽',fertilizer:'🧪',seeds:'🌱',labor:'👷',pesticide:'💊',tractor:'🚜',water:'💧',equipment:'🔧',other:'📦'};
 
 // ── Logout ────────────────────────────────────────────────
-window.doLogout=async function(){if(!confirm('Logout?'))return;try{localStorage.removeItem('af_user_manager');}catch(e){}await signOut(auth);window.location.href='../index.html';};
+window.doLogout=async function(){if(!confirm('Logout?'))return;try{localStorage.removeItem('af_user_manager');localStorage.removeItem('af_data_manager');localStorage.removeItem('af_pending_manager');}catch(e){}await signOut(auth);window.location.href='../index.html';};
 
 // ── Auth ──────────────────────────────────────────────────
 const _waitForAuth=new Promise(resolve=>{const u=onAuthStateChanged(auth,user=>{u();resolve(user);});});
@@ -544,6 +585,22 @@ async function safeGet(q){try{const t=new Promise((_,r)=>setTimeout(()=>r(new Er
 // ── Load All ──────────────────────────────────────────────
 async function loadAll(){
   showSkeleton();
+  // If offline, load from localStorage cache immediately
+  if(!navigator.onLine){
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_data_manager')||'null');
+      if(cached){
+        myFarms=cached.farms||[];myFarmers=cached.farmers||[];
+        myExpenses=cached.expenses||[];myHarvests=cached.harvests||[];
+        myInventory=cached.inventory||[];
+        populateSelects();
+        renderOverview();renderFarms();renderFarmers(myFarmers);
+        renderExpenses(myExpenses);renderHarvests();renderInventory();
+        updateNotifBadge();
+        return;
+      }
+    }catch(e){}
+  }
   const mid=ME.uid, lid=ME.landlordId||'';
   const [fS,frS,eS,hS]=await Promise.all([
     safeGet(query(collection(db,'farms'),where('managerId','==',mid))),
@@ -564,6 +621,13 @@ async function loadAll(){
   renderOverview();renderFarms();renderFarmers(myFarmers);
   renderExpenses(myExpenses);renderHarvests();renderInventory();
   updateNotifBadge();
+  // Cache data for offline use
+  try{
+    localStorage.setItem('af_data_manager', JSON.stringify({
+      farms:myFarms, farmers:myFarmers, expenses:myExpenses,
+      harvests:myHarvests, inventory:myInventory, cachedAt:Date.now()
+    }));
+  }catch(e){}
 }
 
 // ── Populate Selects ──────────────────────────────────────
@@ -984,7 +1048,7 @@ window.addFarm=async function(){
   if(!name||!area){setAlert('farm-alert','⚠️ Name and area required.');return;}
   btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'farms'),{name,area:Number(area),location,crop,season,managerId:ME.uid,landlordId:ME.landlordId||'',status:'active',createdAt:serverTimestamp()});
+    await safeAdd('farms',{name,area:Number(area),location,crop,season,managerId:ME.uid,landlordId:ME.landlordId||'',status:'active',createdAt:serverTimestamp()});
     toast(`✅ ${name} added!`);closeM('modal-add-farm');
     ['farm-name','farm-area','farm-location','farm-crop'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
@@ -1005,7 +1069,7 @@ window.addFarmer=async function(){
   if(!name||!farmId){setAlert('farmer-alert','⚠️ Name and farm required.');return;}
   btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'farmers'),{name,phone,sharePercentage:Number(share||50),farmId,role,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    await safeAdd('farmers',{name,phone,sharePercentage:Number(share||50),farmId,role,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     toast(`✅ ${name} added!`);closeM('modal-add-farmer');
     ['farmer-name','farmer-phone'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('farmer-share').value='50';
@@ -1037,7 +1101,7 @@ window.addExpense=async function(){
   if(chargedTo==='farmer'&&!farmerId){setAlert('expense-alert','⚠️ Select a farmer for debt.');return;}
   btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'expenses'),{farmId,type,date,qty,unit,pricePerUnit:price,amount,chargedTo,farmerId:farmerId||null,notes,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    await safeAdd('expenses',{farmId,type,date,qty,unit,pricePerUnit:price,amount,chargedTo,farmerId:farmerId||null,notes,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     toast(`✅ ${type} recorded — ${fmtM(amount)}`);closeM('modal-add-expense');
     ['exp-qty','exp-price','exp-amount','exp-notes'].forEach(id=>document.getElementById(id).value='');
     setCharge('landlord');
@@ -1108,7 +1172,7 @@ window.addHarvest=async function(){
     const netDebt=Math.max(0,debt-alreadyPaid);
     const deducted=willDeduct?Math.min(farmerShare,netDebt):0;
     const farmerNet=farmerShare-deducted;
-    await addDoc(collection(db,'harvests'),{farmId,farmerId,crop,season,date,qty,unit,pricePerUnit:price,totalIncome:total,farmerSharePct:share,farmerShare,landlordShare,debtDeducted:deducted,farmerNet,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    await safeAdd('harvests',{farmId,farmerId,crop,season,date,qty,unit,pricePerUnit:price,totalIncome:total,farmerSharePct:share,farmerShare,landlordShare,debtDeducted:deducted,farmerNet,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     toast(`✅ Harvest! Farmer net: ${fmtM(farmerNet)}`);closeM('modal-add-harvest');
     ['harv-crop','harv-qty','harv-price'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('harv-share').value='50';
@@ -1143,7 +1207,7 @@ window.addInventory=async function(){
       await updateDoc(doc(db,'inventory',existing.id),{quantity:Number(existing.quantity||0)+qty,minStock:min||existing.minStock,pricePerUnit:price||existing.pricePerUnit,updatedAt:serverTimestamp()});
       toast(`✅ Added ${qty} ${unit} to existing ${name} — Total: ${Number(existing.quantity||0)+qty} ${unit}`);
     }else{
-      await addDoc(collection(db,'inventory'),{name,category,unit,quantity:qty,minStock:min,pricePerUnit:price,landlordId:ME.landlordId||'',managerId:ME.uid,createdAt:serverTimestamp()});
+      await safeAdd('inventory',{name,category,unit,quantity:qty,minStock:min,pricePerUnit:price,landlordId:ME.landlordId||'',managerId:ME.uid,createdAt:serverTimestamp()});
       toast(`✅ ${name} added to inventory!`);
     }
     closeM('modal-add-inventory');
@@ -1194,7 +1258,7 @@ window.issueInventory=async function(){
     await updateDoc(doc(db,'inventory',invId),{quantity:newQty,updatedAt:serverTimestamp()});
     // Create expense record
     if(value>0){
-      await addDoc(collection(db,'expenses'),{farmId,type:item.category||'other',date:new Date().toISOString().split('T')[0],qty,unit:item.unit,pricePerUnit:item.pricePerUnit||0,amount:value,chargedTo,farmerId:farmerId||null,notes:`Issued from inventory: ${item.name}`,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+      await safeAdd('expenses',{farmId,type:item.category||'other',date:new Date().toISOString().split('T')[0],qty,unit:item.unit,pricePerUnit:item.pricePerUnit||0,amount:value,chargedTo,farmerId:farmerId||null,notes:`Issued from inventory: ${item.name}`,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
     }
     toast(`✅ ${qty} ${item.unit} of ${item.name} issued!`);closeM('modal-issue-inventory');
     await loadAll();
@@ -1220,7 +1284,7 @@ window.printFarmReport=function(farmId){
   const totalExp=exp.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=harv.reduce((s,h)=>s+Number(h.totalIncome||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
+  w.document.write(`<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 --><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
   <h1>${farm.name} — Farm Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
   <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
   <h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.notes?' ('+e.notes+')':''}</span><span class="${e.chargedTo==='farmer'?'debt':'exp'}">${e.chargedTo==='farmer'?'Farmer debt: ':''} ₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}
@@ -1232,7 +1296,7 @@ window.printHarvestSlip=function(harvId){
   const h=myHarvests.find(x=>x.id===harvId);if(!h)return;
   const farm=myFarms.find(f=>f.id===h.farmId);const farmer=myFarmers.find(f=>f.id===h.farmerId);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Harvest Slip</title><style>body{font-family:Arial,sans-serif;padding:24px;max-width:380px;margin:0 auto;border:2px solid #16a34a;border-radius:12px;color:#111}h1{color:#16a34a;text-align:center}h2{text-align:center;color:#166534;margin-bottom:16px;font-size:14px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.net{font-size:22px;font-weight:800;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px;margin-top:12px;color:#16a34a}</style></head><body>
+  w.document.write(`<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 --><html><head><title>Harvest Slip</title><style>body{font-family:Arial,sans-serif;padding:24px;max-width:380px;margin:0 auto;border:2px solid #16a34a;border-radius:12px;color:#111}h1{color:#16a34a;text-align:center}h2{text-align:center;color:#166534;margin-bottom:16px;font-size:14px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.net{font-size:22px;font-weight:800;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px;margin-top:12px;color:#16a34a}</style></head><body>
   <h1>🌾 AgriFlow</h1><h2>Harvest Payment Slip</h2>
   <div class="row"><span>Farm</span><strong>${farm?.name||'—'}</strong></div>
   <div class="row"><span>Farmer</span><strong>${farmer?.name||'—'}</strong></div>
@@ -1254,7 +1318,7 @@ window.printFarmerLedger=function(farmerId){
   const total=debts.reduce((s,e)=>s+Number(e.amount||0),0);
   const paid=myHarvests.filter(h=>h.farmerId===farmerId).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:500px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.exp{color:#dc2626;font-weight:700}.inc{color:#16a34a;font-weight:700}</style></head><body>
+  w.document.write(`<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 --><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:500px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.exp{color:#dc2626;font-weight:700}.inc{color:#16a34a;font-weight:700}</style></head><body>
   <h1>👨‍🌾 ${f.name} — Ledger</h1><p>${farm?.name||'—'} · Generated: ${new Date().toLocaleDateString()}</p>
   <div class="row"><span>Total Debt</span><span class="exp">₨${total.toLocaleString()}</span></div>
   <div class="row"><span>Paid via Harvest</span><span class="inc">₨${paid.toLocaleString()}</span></div>
@@ -1268,7 +1332,7 @@ window.printFullReport=function(){
   const totalExp=myExpenses.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px;border-bottom:2px solid #16a34a;padding-bottom:4px}.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}.farm-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}</style></head><body>
+  w.document.write(`<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 --><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px;border-bottom:2px solid #16a34a;padding-bottom:4px}.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}.farm-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}</style></head><body>
   <h1>📋 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
   <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
   ${myFarms.map(f=>{const e=myExpenses.filter(x=>x.farmId===f.id&&x.chargedTo==='landlord').reduce((s,x)=>s+Number(x.amount||0),0);const i=myHarvests.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.totalIncome||0),0);return `<div class="farm-box"><div style="font-weight:700;font-size:15px;margin-bottom:6px">${f.name}</div><div class="row"><span>Expenses</span><span class="exp">₨${e.toLocaleString()}</span></div><div class="row"><span>Income</span><span class="inc">₨${i.toLocaleString()}</span></div><div class="row"><span><strong>Profit</strong></span><span style="font-weight:800;color:${i-e>=0?'#16a34a':'#dc2626'}">₨${(i-e).toLocaleString()}</span></div></div>`;}).join('')}
@@ -1283,7 +1347,7 @@ window.printLedger=function(){
   const inc=rows.filter(r=>r.amount>0).reduce((s,r)=>s+r.amount,0);
   const exp=rows.filter(r=>r.cls==='exp').reduce((s,r)=>s+Math.abs(r.amount),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
+  w.document.write(`<!DOCTYPE html><!-- AgriFlow Manager v20260319_1041 --><html><head><title>Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
   <h1>📒 Ledger</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
   <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${inc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${exp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${inc-exp>=0?'#16a34a':'#dc2626'}">₨${(inc-exp).toLocaleString()}</div></div></div>
   ${rows.map(r=>`<div class="row"><span>${r.date} &nbsp; ${r.desc} &nbsp; <em style="color:#888">${r.farm}</em></span><span class="${r.cls}">${r.amount>=0?'+':''}₨${Math.abs(r.amount).toLocaleString()} <small>(${r.label})</small></span></div>`).join('')}
