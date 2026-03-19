@@ -189,7 +189,7 @@ import { getAuth, browserLocalPersistence, setPersistence, onAuthStateChanged, s
          createUserWithEmailAndPassword,
          sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, setDoc, updateDoc, deleteDoc,
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
          collection, getDocs, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -204,12 +204,7 @@ const CONFIG = {
 const app=initializeApp(CONFIG), auth=getAuth(app);
 setPersistence(auth,browserLocalPersistence).catch(()=>{});
 =>{});
-let db;
-try {
-  db = initializeFirestore(app, { localCache: persistentLocalCache() });
-} catch(e) {
-  db = getFirestore(app);
-}
+const db=getFirestore(app);
 let ME=null, allUsers=[], allLandlords=[], allManagers=[], activeEmail='';
 
 // ── Theme ─────────────────────────────────────────────────
