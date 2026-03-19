@@ -420,8 +420,7 @@
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut,
-         indexedDBLocalPersistence, setPersistence }
+import { initializeAuth, indexedDBLocalPersistence, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache,
          doc, getDoc, addDoc, updateDoc, deleteDoc,
@@ -430,8 +429,7 @@ import { getFirestore, initializeFirestore, persistentLocalCache,
 
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
 const app=initializeApp(CONFIG);
-const auth=getAuth(app);
-setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
+const auth=initializeAuth(app,{persistence:indexedDBLocalPersistence});
 let db;
 try{ db=initializeFirestore(app,{localCache:persistentLocalCache()}); }catch(e){ db=getFirestore(app); }
 
