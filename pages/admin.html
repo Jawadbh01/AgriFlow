@@ -189,7 +189,7 @@ import { getAuth, onAuthStateChanged, signOut,
          createUserWithEmailAndPassword,
          sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
+import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, setDoc, updateDoc, deleteDoc,
          collection, getDocs, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -201,7 +201,13 @@ const CONFIG = {
   messagingSenderId:"922324809308",
   appId:"1:922324809308:web:05c015ce12e55034e99899"
 };
-const app=initializeApp(CONFIG), auth=getAuth(app), db=getFirestore(app);
+const app=initializeApp(CONFIG), auth=getAuth(app);
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache() });
+} catch(e) {
+  db = getFirestore(app);
+}
 let ME=null, allUsers=[], allLandlords=[], allManagers=[], activeEmail='';
 
 // ── Theme ─────────────────────────────────────────────────
