@@ -185,7 +185,7 @@
 
 <script type="module">
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, indexedDBLocalPersistence, setPersistence,
+import { initializeAuth, indexedDBLocalPersistence, onAuthStateChanged, signOut,
          createUserWithEmailAndPassword,
          sendPasswordResetEmail }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -201,8 +201,8 @@ const CONFIG = {
   messagingSenderId:"922324809308",
   appId:"1:922324809308:web:05c015ce12e55034e99899"
 };
-const app=initializeApp(CONFIG), auth=getAuth(app);
-setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
+const app=initializeApp(CONFIG), auth=initializeAuth(app,{persistence:indexedDBLocalPersistence});
+=>{});
 let db;
 try {
   db = initializeFirestore(app, { localCache: persistentLocalCache() });
