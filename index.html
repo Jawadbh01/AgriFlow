@@ -4,8 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>AgriFlow — Login</title>
-  <meta name="theme-color" content="#0a0f0a"/>
-  <link rel="manifest" href="../manifest.json"/>
+  <meta name="theme-color" content="#080d08"/>
+  <link rel="manifest" href="manifest.json"/>
   <link rel="apple-touch-icon" href="images/icon-192.png"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -15,17 +15,17 @@
     body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
     .login-wrap{width:100%;max-width:400px;}
     .login-brand{text-align:center;margin-bottom:32px;}
-    .login-brand-icon{width:72px;height:72px;background:var(--primary);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 14px;}
-    .login-brand-name{font-size:28px;font-weight:800;}
+    .login-brand-icon{width:76px;height:76px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 14px;box-shadow:0 8px 32px rgba(34,197,94,0.35);}
+    .login-brand-name{font-size:30px;font-weight:800;letter-spacing:-0.5px;}
     .login-brand-tag{font-size:13px;color:var(--muted);margin-top:4px;}
-    .login-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px;}
-    .login-title{font-size:18px;font-weight:800;margin-bottom:4px;}
+    .login-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:30px 24px;}
+    .login-title{font-size:19px;font-weight:800;margin-bottom:4px;}
     .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
     .pass-wrap{position:relative;}
     .pass-wrap .form-input{padding-right:48px;}
-    .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;}
+    .pass-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1;}
     .login-footer{text-align:center;margin-top:16px;font-size:12px;color:var(--muted);}
-    .theme-row{text-align:center;margin-top:14px;}
+    .theme-row{text-align:center;margin-top:16px;}
   </style>
 </head>
 <body>
@@ -61,10 +61,12 @@
 <div id="toast-root"></div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, signOut }
+import { initializeApp }            from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut,
+         indexedDBLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc }
+import { getFirestore, initializeFirestore, persistentLocalCache,
+         doc, getDoc }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CONFIG = {
@@ -82,10 +84,15 @@ const ROUTES = {
   manager:  'pages/manager.html'
 };
 
-// ── Init ──────────────────────────────────────────────────
 const app  = initializeApp(CONFIG);
 const auth = getAuth(app);
-const db   = getFirestore(app);
+let db;
+try { db = initializeFirestore(app, {localCache: persistentLocalCache()}); }
+catch(e) { db = getFirestore(app); }
+
+// ── Set persistence immediately ────────────────────────────
+// This is the key fix — must be done before ANY auth operation
+setPersistence(auth, indexedDBLocalPersistence).catch(() => {});
 
 // ── Theme ─────────────────────────────────────────────────
 function initTheme() {
@@ -104,22 +111,11 @@ initTheme();
 // ── UI Helpers ────────────────────────────────────────────
 function showErr(msg) {
   const el = document.getElementById('login-alert');
-  el.textContent = msg;
-  el.className = 'alert show error';
+  el.textContent = msg; el.className = 'alert show error';
 }
-function clearErr() {
-  document.getElementById('login-alert').className = 'alert';
-}
-function setBusy(msg) {
-  const b = document.getElementById('login-btn');
-  b.disabled = true;
-  b.textContent = msg;
-}
-function setReady() {
-  const b = document.getElementById('login-btn');
-  b.disabled = false;
-  b.textContent = 'Sign In';
-}
+function clearErr() { document.getElementById('login-alert').className = 'alert'; }
+function setBusy(msg) { const b = document.getElementById('login-btn'); b.disabled = true; b.textContent = msg; }
+function setReady() { const b = document.getElementById('login-btn'); b.disabled = false; b.textContent = 'Sign In'; }
 
 // ── Password toggle ───────────────────────────────────────
 document.getElementById('pass-toggle').addEventListener('click', () => {
@@ -131,7 +127,8 @@ document.getElementById('pass-toggle').addEventListener('click', () => {
 document.getElementById('email').addEventListener('keydown',    e => { if(e.key==='Enter') document.getElementById('password').focus(); });
 document.getElementById('password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
-// ── LOGIN — no onAuthStateChanged, no race conditions ─────
+// ── LOGIN ─────────────────────────────────────────────────
+// No onAuthStateChanged here — pure sequential login, no race conditions
 window.doLogin = async function() {
   const email = document.getElementById('email').value.trim();
   const pass  = document.getElementById('password').value;
@@ -142,17 +139,17 @@ window.doLogin = async function() {
   setBusy('⏳ Signing in...');
 
   try {
-    // Step 1: Firebase Auth login
+    // Step 1: Firebase Auth
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     const uid  = cred.user.uid;
 
     setBusy('⏳ Loading account...');
 
-    // Step 2: Fetch Firestore user doc (with 10s timeout)
+    // Step 2: Firestore
     let snap;
     try {
       const timeout = new Promise((_,reject) =>
-        setTimeout(() => reject(new Error('Database timeout — check Firestore rules')), 10000)
+        setTimeout(() => reject(new Error('Database timeout — check connection')), 10000)
       );
       snap = await Promise.race([getDoc(doc(db, 'users', uid)), timeout]);
     } catch (err) {
@@ -161,10 +158,9 @@ window.doLogin = async function() {
       setReady(); return;
     }
 
-    // Step 3: Validate doc
     if (!snap.exists()) {
       await signOut(auth);
-      showErr('❌ Account not found in system. Contact admin.');
+      showErr('❌ Account not found. Contact admin.');
       setReady(); return;
     }
 
@@ -172,29 +168,29 @@ window.doLogin = async function() {
 
     if (data.status === 'suspended') {
       await signOut(auth);
-      showErr('🚫 Your account is suspended. Contact admin.');
+      showErr('🚫 Account suspended. Contact admin.');
       setReady(); return;
     }
 
     if (!data.role || !ROUTES[data.role]) {
       await signOut(auth);
-      showErr('❌ Role "' + (data.role||'none') + '" not recognized. Contact admin.');
+      showErr('❌ Role "' + (data.role||'none') + '" not recognized.');
       setReady(); return;
     }
 
-    // Step 4: Redirect — no going back
+    // Step 3: Redirect
     setBusy('✅ Opening dashboard...');
     window.location.replace(ROUTES[data.role]);
 
   } catch (e) {
-    await signOut(auth).catch(()=>{});
+    await signOut(auth).catch(() => {});
     const MSGS = {
       'auth/user-not-found':     '❌ No account with this email.',
       'auth/wrong-password':     '❌ Wrong password.',
       'auth/invalid-email':      '❌ Invalid email format.',
       'auth/invalid-credential': '❌ Email or password is incorrect.',
       'auth/too-many-requests':  '⚠️ Too many attempts. Try again later.',
-      'auth/network-request-failed': '📶 No internet. Check your connection.',
+      'auth/network-request-failed': '📶 No internet connection.',
     };
     showErr(MSGS[e.code] || '❌ ' + e.message);
     setReady();
