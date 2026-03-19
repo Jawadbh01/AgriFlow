@@ -522,7 +522,15 @@ function showSkeleton(){
 }
 
 // ── Safe query ────────────────────────────────────────────
-async function safeGet(q){try{return await getDocs(q);}catch(e){console.warn('Query:',e.message);return{docs:[]};}}
+async function safeGet(q){
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+    return await Promise.race([getDocs(q),timeout]);
+  }catch(e){
+    console.warn('Query failed:',e.message);
+    return{docs:[]};
+  }
+}
 
 // ── Load All ──────────────────────────────────────────────
 async function loadAll(){
@@ -534,14 +542,14 @@ async function loadAll(){
     safeGet(query(collection(db,'expenses'),where('managerId','==',mid))),
     safeGet(query(collection(db,'harvests'),where('managerId','==',mid))),
     safeGet(query(collection(db,'inventory'),where('landlordId','==',lid))),
-    safeGet(query(collection(db,'notifications'),where('toUid','==',mid),where('read','==',false))),
+    safeGet(query(collection(db,'notifications'),where('toUid','==',mid))),
   ]);
   myFarms    =fS.docs.map(d=>({id:d.id,...d.data()}));
   myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
   myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
   myHarvests =hS.docs.map(d=>({id:d.id,...d.data()}));
   myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
-  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()}));
+  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()})).filter(n=>!n.read);
   populateSelects();
   renderOverview();renderFarms();renderFarmers(myFarmers);
   renderExpenses(myExpenses);renderHarvests();renderInventory();
