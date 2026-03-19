@@ -4,12 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>AgriFlow — Manager</title>
-  <meta name="theme-color" content="#0a0f0a"/>
+  <meta name="theme-color" content="#080d08"/>
   <link rel="manifest" href="../manifest.json"/>
-  <link rel="apple-touch-icon" href="../images/icon-192.png"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <link rel="stylesheet" href="../css/style.css"/>
 </head>
 <body>
@@ -25,14 +21,13 @@
       <div><div class="user-name" id="user-name">Manager</div><div class="user-role">👨‍💼 Manager</div></div>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-section">Dashboard</div>
+      <div class="nav-section">Main</div>
       <button class="nav-item active" data-tab-btn="overview"><span class="nav-icon">📊</span>Overview</button>
       <button class="nav-item" data-tab-btn="bookkeeping"><span class="nav-icon">📒</span>Bookkeeping</button>
       <div class="nav-section">Management</div>
       <button class="nav-item" data-tab-btn="farms"><span class="nav-icon">🌱</span>Farms</button>
       <button class="nav-item" data-tab-btn="farmers"><span class="nav-icon">👨‍🌾</span>Farmers</button>
       <button class="nav-item" data-tab-btn="expenses"><span class="nav-icon">💸</span>Expenses</button>
-      <button class="nav-item" data-tab-btn="debts"><span class="nav-icon">📋</span>Farmer Debts</button>
       <button class="nav-item" data-tab-btn="harvests"><span class="nav-icon">🌾</span>Harvests</button>
       <button class="nav-item" data-tab-btn="inventory"><span class="nav-icon">📦</span>Inventory</button>
       <button class="nav-item" data-tab-btn="reports"><span class="nav-icon">📈</span>Reports</button>
@@ -44,14 +39,17 @@
   </aside>
 
   <div class="main">
-    <div class="offline-bar" id="offline-bar">📵 Offline</div>
+    <div class="offline-bar" id="offline-bar">📵 Offline — showing cached data</div>
     <header class="topbar">
       <div class="topbar-left">
         <button class="hamburger" id="hamburger">☰</button>
-        <div><div class="page-title" id="page-title">Overview</div><div class="page-subtitle" id="page-sub">Manager Dashboard</div></div>
+        <div><div class="page-title" id="page-title">Overview</div><div class="page-subtitle">Manager Dashboard</div></div>
       </div>
       <div class="topbar-right">
         <div class="online-dot" id="online-dot"></div>
+        <button class="btn btn-ghost btn-sm" id="notif-btn" onclick="openM('modal-notifications')" style="position:relative">
+          🔔<span id="notif-badge" class="hidden" style="position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center"></span>
+        </button>
       </div>
     </header>
 
@@ -61,26 +59,46 @@
       <div data-tab-content="overview">
         <div class="section-header">
           <div><div class="section-title">Dashboard</div><div class="section-sub" id="overview-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="switchTab('expenses');setTimeout(()=>openModal('modal-add-expense'),100)">➕ Expense</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-expense')">➕ Expense</button>
         </div>
         <div class="stats-grid mb-16" id="stats-grid"></div>
-        <div class="grid-2">
-          <div class="card mb-16">
-            <div class="card-header"><span class="card-title">🌱 My Farms</span><button class="btn btn-ghost btn-sm" onclick="switchTab('farms')">All →</button></div>
-            <div id="overview-farms"></div>
-          </div>
-          <div class="card mb-16">
-            <div class="card-header"><span class="card-title">💸 Recent Expenses</span><button class="btn btn-ghost btn-sm" onclick="switchTab('expenses')">All →</button></div>
-            <div id="overview-expenses"></div>
+        <div class="card mb-16">
+          <div class="card-header"><span class="card-title">🌱 My Farms</span><button class="btn btn-ghost btn-sm" onclick="switchTab('farms')">All →</button></div>
+          <div id="overview-farms"></div>
+        </div>
+        <div class="card mb-16">
+          <div class="card-header"><span class="card-title">📒 Recent Transactions</span><button class="btn btn-ghost btn-sm" onclick="switchTab('bookkeeping')">All →</button></div>
+          <div id="overview-recent"></div>
+        </div>
+      </div>
+
+      <!-- BOOKKEEPING -->
+      <div data-tab-content="bookkeeping" class="hidden">
+        <div class="section-header">
+          <div><div class="section-title">📒 Bookkeeping</div><div class="section-sub" id="bk-sub"></div></div>
+          <button class="btn btn-outline btn-sm" onclick="printLedger()">🖨️ Print</button>
+        </div>
+        <div class="card mb-16">
+          <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px">
+            <select class="form-select" style="flex:1;min-width:120px" id="bk-farm"><option value="">All Farms</option></select>
+            <select class="form-select" style="flex:1;min-width:120px" id="bk-type">
+              <option value="">All Types</option>
+              <option value="expense">💸 Landlord Expense</option>
+              <option value="debt">📋 Farmer Debt</option>
+              <option value="harvest">🌾 Harvest</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="buildLedger()">Filter</button>
           </div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="bk-summary"></div>
+        <div id="bk-timeline"></div>
       </div>
 
       <!-- FARMS -->
       <div data-tab-content="farms" class="hidden">
         <div class="section-header">
           <div><div class="section-title">🌱 Farms</div><div class="section-sub" id="farms-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-farm')">➕ Add Farm</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-farm')">➕ Add</button>
         </div>
         <div id="farms-list"></div>
       </div>
@@ -89,10 +107,10 @@
       <div data-tab-content="farmers" class="hidden">
         <div class="section-header">
           <div><div class="section-title">👨‍🌾 Farmers</div><div class="section-sub" id="farmers-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-farmer')">➕ Add Farmer</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-farmer')">➕ Add</button>
         </div>
         <div class="card">
-          <div class="card-header"><input class="form-input" style="max-width:100%" id="farmer-search" placeholder="🔍 Search farmers..." oninput="filterFarmers(this.value)"/></div>
+          <div class="card-header"><input class="form-input" style="width:100%" id="farmer-search" placeholder="🔍 Search..." oninput="filterFarmers(this.value)"/></div>
           <div id="farmers-list"></div>
         </div>
       </div>
@@ -101,41 +119,26 @@
       <div data-tab-content="expenses" class="hidden">
         <div class="section-header">
           <div><div class="section-title">💸 Expenses</div><div class="section-sub" id="expenses-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-expense')">➕ Add</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-expense')">➕ Add</button>
         </div>
         <div class="card mb-16">
           <div class="card-header" style="flex-wrap:wrap;gap:8px">
             <select class="form-select" style="flex:1;min-width:120px" id="exp-farm-filter" onchange="filterExpenses()"><option value="">All Farms</option></select>
-            <select class="form-select" style="flex:1;min-width:120px" id="exp-type-filter" onchange="filterExpenses()">
-              <option value="">All Types</option>
-              <option value="seeds">🌱 Seeds</option>
-              <option value="fertilizer">🧪 Fertilizer</option>
-              <option value="diesel">⛽ Diesel</option>
-              <option value="labor">👷 Labor</option>
-              <option value="pesticide">💊 Pesticide</option>
-              <option value="water">💧 Water</option>
-              <option value="equipment">🔧 Equipment</option>
-              <option value="other">📦 Other</option>
+            <select class="form-select" style="flex:1;min-width:120px" id="exp-charge-filter" onchange="filterExpenses()">
+              <option value="">All</option>
+              <option value="landlord">💼 Landlord</option>
+              <option value="farmer">👨‍🌾 Farmer Debt</option>
             </select>
           </div>
         </div>
         <div id="expenses-list"></div>
       </div>
 
-      <!-- FARMER DEBTS -->
-      <div data-tab-content="debts" class="hidden">
-        <div class="section-header">
-          <div><div class="section-title">📋 Farmer Debts</div><div class="section-sub" id="debts-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-debt')">➕ Add Debt</button>
-        </div>
-        <div id="debts-list"></div>
-      </div>
-
       <!-- HARVESTS -->
       <div data-tab-content="harvests" class="hidden">
         <div class="section-header">
           <div><div class="section-title">🌾 Harvests</div><div class="section-sub" id="harvests-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-harvest')">➕ Record Harvest</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-harvest')">➕ Record</button>
         </div>
         <div id="harvests-list"></div>
       </div>
@@ -144,73 +147,33 @@
       <div data-tab-content="inventory" class="hidden">
         <div class="section-header">
           <div><div class="section-title">📦 Inventory</div><div class="section-sub" id="inventory-sub"></div></div>
-          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-inventory')">➕ Add Item</button>
+          <button class="btn btn-primary btn-sm" onclick="openM('modal-add-inventory')">➕ Add Stock</button>
         </div>
         <div class="stats-grid mb-16" id="inv-stats"></div>
-        <div class="card">
-          <div id="inventory-list"></div>
-        </div>
-      </div>
-
-      <!-- BOOKKEEPING -->
-      <div data-tab-content="bookkeeping" class="hidden">
-        <div class="section-header">
-          <div><div class="section-title">📒 Bookkeeping</div><div class="section-sub" id="bk-sub">All transactions</div></div>
-          <button class="btn btn-outline btn-sm" onclick="printLedger()">🖨️ Print</button>
-        </div>
-        <!-- Filters -->
-        <div class="card mb-16">
-          <div class="card-body" style="display:flex;flex-wrap:wrap;gap:8px">
-            <select class="form-select" style="flex:1;min-width:120px" id="bk-farm">
-              <option value="">All Farms</option>
-            </select>
-            <select class="form-select" style="flex:1;min-width:120px" id="bk-type">
-              <option value="">All Types</option>
-              <option value="expense">💸 Expenses</option>
-              <option value="debt">📋 Debts</option>
-              <option value="harvest">🌾 Harvests</option>
-            </select>
-            <button class="btn btn-ghost btn-sm" onclick="buildLedger()">🔍 Filter</button>
-            <button class="btn btn-ghost btn-sm" onclick="clearBkFilters()">✕ Clear</button>
-          </div>
-        </div>
-        <!-- Summary bar -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px" id="bk-summary"></div>
-        <!-- Timeline -->
-        <div id="bk-timeline"></div>
+        <div class="card"><div id="inventory-list"></div></div>
       </div>
 
       <!-- REPORTS -->
       <div data-tab-content="reports" class="hidden">
         <div class="section-header">
-          <div><div class="section-title">📈 Reports</div><div class="section-sub">Profit & loss summary</div></div>
-          <button class="btn btn-outline btn-sm" onclick="printFullReport()">🖨️ Print All</button>
+          <div><div class="section-title">📈 Reports</div></div>
+          <button class="btn btn-outline btn-sm" onclick="printFullReport()">🖨️ Print</button>
         </div>
-        <!-- Summary Stats -->
         <div class="stats-grid mb-16" id="report-stats"></div>
-        <!-- Per Farm -->
-        <div class="card mb-16">
-          <div class="card-header"><span class="card-title">🌱 Per Farm Breakdown</span></div>
-          <div id="report-farms"></div>
-        </div>
-        <!-- Farmer Debts -->
-        <div class="card mb-16">
-          <div class="card-header"><span class="card-title">📋 Farmer Debt Summary</span></div>
-          <div id="report-debts"></div>
-        </div>
+        <div class="card mb-16"><div class="card-header"><span class="card-title">🌱 Per Farm P&L</span></div><div id="report-farms"></div></div>
+        <div class="card mb-16"><div class="card-header"><span class="card-title">📋 Farmer Debts</span></div><div id="report-debts"></div></div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- Action Menu -->
 <div class="action-menu" id="action-menu"></div>
 
 <!-- MODAL: Add Farm -->
 <div class="modal-overlay" id="modal-add-farm">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">🌱 Add Farm</div><button class="modal-close" onclick="closeModal('modal-add-farm')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">🌱 Add Farm</div><button class="modal-close" onclick="closeM('modal-add-farm')">✕</button></div>
     <div class="alert" id="farm-alert"></div>
     <div class="form-group"><label class="form-label">Farm Name *</label><input class="form-input" id="farm-name" placeholder="e.g. North Field"/></div>
     <div class="form-row">
@@ -218,7 +181,7 @@
       <div class="form-group"><label class="form-label">Location</label><input class="form-input" id="farm-location" placeholder="Multan"/></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Current Crop</label><input class="form-input" id="farm-crop" placeholder="Wheat"/></div>
+      <div class="form-group"><label class="form-label">Crop</label><input class="form-input" id="farm-crop" placeholder="Wheat"/></div>
       <div class="form-group"><label class="form-label">Season</label>
         <select class="form-select" id="farm-season"><option value="rabi">🌾 Rabi</option><option value="kharif">🌿 Kharif</option></select>
       </div>
@@ -230,17 +193,17 @@
 <!-- MODAL: Add Farmer -->
 <div class="modal-overlay" id="modal-add-farmer">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">👨‍🌾 Add Farmer</div><button class="modal-close" onclick="closeModal('modal-add-farmer')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">👨‍🌾 Add Farmer</div><button class="modal-close" onclick="closeM('modal-add-farmer')">✕</button></div>
     <div class="alert" id="farmer-alert"></div>
-    <div class="form-group"><label class="form-label">Farmer Name *</label><input class="form-input" id="farmer-name" placeholder="Ali Hassan"/></div>
+    <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="farmer-name" placeholder="Ali Hassan"/></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="farmer-phone" placeholder="03001234567"/></div>
-      <div class="form-group"><label class="form-label">Share %</label><input class="form-input" type="number" id="farmer-share" placeholder="50" value="50"/></div>
+      <div class="form-group"><label class="form-label">Share %</label><input class="form-input" type="number" id="farmer-share" value="50" placeholder="50"/></div>
     </div>
     <div class="form-group"><label class="form-label">Assign to Farm *</label>
       <select class="form-select" id="farmer-farm"><option value="">Select farm...</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Role on Farm</label>
+    <div class="form-group"><label class="form-label">Role</label>
       <select class="form-select" id="farmer-role"><option value="main">👑 Main Farmer</option><option value="partner">🤝 Partner</option></select>
     </div>
     <button class="btn btn-primary btn-full" id="farmer-btn" onclick="addFarmer()">✅ Add Farmer</button>
@@ -250,87 +213,108 @@
 <!-- MODAL: Add Expense -->
 <div class="modal-overlay" id="modal-add-expense">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">💸 Add Expense</div><button class="modal-close" onclick="closeModal('modal-add-expense')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">💸 Record Expense</div><button class="modal-close" onclick="closeM('modal-add-expense')">✕</button></div>
     <div class="alert" id="expense-alert"></div>
     <div class="form-group"><label class="form-label">Farm *</label>
-      <select class="form-select" id="exp-farm"><option value="">Select farm...</option></select>
+      <select class="form-select" id="exp-farm" onchange="loadFarmFarmers('exp-farmer')"><option value="">Select farm...</option></select>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Category *</label>
         <select class="form-select" id="exp-type">
-          <option value="seeds">🌱 Seeds</option>
-          <option value="fertilizer">🧪 Fertilizer</option>
           <option value="diesel">⛽ Diesel</option>
+          <option value="fertilizer">🧪 Fertilizer</option>
+          <option value="seeds">🌱 Seeds</option>
           <option value="labor">👷 Labor</option>
           <option value="pesticide">💊 Pesticide</option>
+          <option value="tractor">🚜 Tractor</option>
           <option value="water">💧 Water</option>
-          <option value="equipment">🔧 Equipment</option>
           <option value="other">📦 Other</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="exp-date"/></div>
     </div>
+    <!-- Charge to -->
+    <div class="form-group">
+      <label class="form-label">Charged To *</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" id="charge-landlord-btn" onclick="setCharge('landlord')"
+          style="padding:12px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary-dim);color:var(--primary);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+          💼 Landlord
+        </button>
+        <button type="button" id="charge-farmer-btn" onclick="setCharge('farmer')"
+          style="padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+          👨‍🌾 Farmer Debt
+        </button>
+      </div>
+      <input type="hidden" id="exp-charge" value="landlord"/>
+    </div>
+    <div class="form-group hidden" id="farmer-select-group">
+      <label class="form-label">Select Farmer *</label>
+      <select class="form-select" id="exp-farmer"><option value="">Select farmer...</option></select>
+    </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Quantity</label><input class="form-input" type="number" id="exp-qty" placeholder="0" oninput="calcExpense()"/></div>
-      <div class="form-group"><label class="form-label">Price/Unit (₨)</label><input class="form-input" type="number" id="exp-price" placeholder="0" oninput="calcExpense()"/></div>
-    </div>
-    <div class="form-group"><label class="form-label">Total Amount (₨) *</label><input class="form-input" type="number" id="exp-amount" placeholder="0"/></div>
-    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="exp-desc" placeholder="Optional notes..."/></div>
-    <button class="btn btn-primary btn-full" id="expense-btn" onclick="addExpense()">✅ Save Expense</button>
-  </div>
-</div>
-
-<!-- MODAL: Add Farmer Debt -->
-<div class="modal-overlay" id="modal-add-debt">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">📋 Add Farmer Debt</div><button class="modal-close" onclick="closeModal('modal-add-debt')">✕</button></div>
-    <div class="alert" id="debt-alert"></div>
-    <div class="form-group"><label class="form-label">Farmer *</label>
-      <select class="form-select" id="debt-farmer"><option value="">Select farmer...</option></select>
+      <div class="form-group"><label class="form-label">Qty</label><input class="form-input" type="number" id="exp-qty" placeholder="0" oninput="calcExp()"/></div>
+      <div class="form-group"><label class="form-label">Unit</label>
+        <select class="form-select" id="exp-unit"><option value="litre">Litre</option><option value="kg">kg</option><option value="bag">Bag</option><option value="hours">Hours</option><option value="day">Day</option><option value="piece">Piece</option></select>
+      </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Amount (₨) *</label><input class="form-input" type="number" id="debt-amount" placeholder="5000"/></div>
-      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="debt-date"/></div>
+      <div class="form-group"><label class="form-label">Price/Unit (₨)</label><input class="form-input" type="number" id="exp-price" placeholder="0" oninput="calcExp()"/></div>
+      <div class="form-group"><label class="form-label">Total Amount (₨) *</label><input class="form-input" type="number" id="exp-amount" placeholder="0"/></div>
     </div>
-    <div class="form-group"><label class="form-label">Reason</label><input class="form-input" id="debt-reason" placeholder="Cash advance, diesel, etc."/></div>
-    <button class="btn btn-primary btn-full" id="debt-btn" onclick="addDebt()">✅ Save Debt</button>
+    <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="exp-notes" placeholder="Optional..."/></div>
+    <button class="btn btn-primary btn-full" id="expense-btn" onclick="addExpense()">✅ Save</button>
   </div>
 </div>
 
 <!-- MODAL: Add Harvest -->
 <div class="modal-overlay" id="modal-add-harvest">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">🌾 Record Harvest</div><button class="modal-close" onclick="closeModal('modal-add-harvest')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">🌾 Record Harvest</div><button class="modal-close" onclick="closeM('modal-add-harvest')">✕</button></div>
     <div class="alert" id="harvest-alert"></div>
     <div class="form-group"><label class="form-label">Farm *</label>
-      <select class="form-select" id="harv-farm" onchange="loadFarmFarmers()"><option value="">Select farm...</option></select>
+      <select class="form-select" id="harv-farm" onchange="loadFarmFarmers('harv-farmer');calcHarvest()"><option value="">Select farm...</option></select>
     </div>
     <div class="form-group"><label class="form-label">Main Farmer *</label>
-      <select class="form-select" id="harv-farmer"><option value="">Select farmer...</option></select>
+      <select class="form-select" id="harv-farmer" onchange="calcHarvest()"><option value="">Select farmer...</option></select>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Crop *</label><input class="form-input" id="harv-crop" placeholder="Wheat"/></div>
-      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="harv-date"/></div>
+      <div class="form-group"><label class="form-label">Season</label>
+        <select class="form-select" id="harv-season"><option value="rabi">🌾 Rabi</option><option value="kharif">🌿 Kharif</option></select>
+      </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Total Quantity</label><input class="form-input" type="number" id="harv-qty" placeholder="0" oninput="calcHarvest()"/></div>
+      <div class="form-group"><label class="form-label">Date *</label><input class="form-input" type="date" id="harv-date"/></div>
+      <div class="form-group"><label class="form-label">Farmer Share %</label><input class="form-input" type="number" id="harv-share" value="50" oninput="calcHarvest()"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Quantity *</label><input class="form-input" type="number" id="harv-qty" placeholder="0" oninput="calcHarvest()"/></div>
       <div class="form-group"><label class="form-label">Unit</label>
         <select class="form-select" id="harv-unit"><option value="mand">Mand (من)</option><option value="kg">kg</option><option value="ton">Ton</option><option value="bag">Bag</option></select>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Price/Unit (₨)</label><input class="form-input" type="number" id="harv-price" placeholder="0" oninput="calcHarvest()"/></div>
-      <div class="form-group"><label class="form-label">Farmer Share %</label><input class="form-input" type="number" id="harv-share" value="50" oninput="calcHarvest()"/></div>
+    <div class="form-group"><label class="form-label">Price/Unit (₨) *</label><input class="form-input" type="number" id="harv-price" placeholder="0" oninput="calcHarvest()"/></div>
+    <!-- Debt deduction option -->
+    <div id="debt-deduct-option" style="display:none;background:var(--warning-dim);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:700;color:var(--warning)">⚠️ Farmer has active debt</span>
+        <span id="farmer-debt-amount" style="font-size:13px;font-weight:800;color:var(--danger)"></span>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="deduct-debt" onchange="calcHarvest()" style="width:18px;height:18px;cursor:pointer"/>
+        <span style="font-size:13px;font-weight:600">Deduct debt from farmer share at harvest</span>
+      </label>
     </div>
-    <!-- Auto Calculation -->
-    <div id="harv-calc" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase">Auto Calculation</div>
+    <!-- Calculation box -->
+    <div id="harv-calc" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Auto Calculation</div>
       <div class="info-list">
-        <div class="info-row"><span class="info-label">Total Income</span><span class="info-value text-primary" id="calc-total">₨0</span></div>
-        <div class="info-row"><span class="info-label">Landlord Share</span><span class="info-value text-primary" id="calc-landlord">₨0</span></div>
+        <div class="info-row"><span class="info-label">Total Income</span><span class="info-value" id="calc-total" style="color:var(--primary)">₨0</span></div>
+        <div class="info-row"><span class="info-label">Landlord Share</span><span class="info-value" id="calc-landlord" style="color:var(--primary)">₨0</span></div>
         <div class="info-row"><span class="info-label">Farmer Share</span><span class="info-value" id="calc-farmer">₨0</span></div>
-        <div class="info-row"><span class="info-label">Farmer Debt</span><span class="info-value text-danger" id="calc-debt">₨0</span></div>
-        <div class="info-row"><span class="info-label" style="font-weight:700">Farmer Net Pay</span><span class="info-value" id="calc-net" style="font-size:16px;font-weight:800">₨0</span></div>
+        <div class="info-row"><span class="info-label">Debt Deducted</span><span class="info-value" id="calc-deducted" style="color:var(--danger)">₨0</span></div>
+        <div class="info-row"><span class="info-label" style="font-weight:800">Farmer Net Pay</span><span class="info-value" id="calc-net" style="font-size:16px;font-weight:800">₨0</span></div>
       </div>
     </div>
     <button class="btn btn-primary btn-full" id="harvest-btn" onclick="addHarvest()">✅ Record Harvest</button>
@@ -340,272 +324,360 @@
 <!-- MODAL: Add Inventory -->
 <div class="modal-overlay" id="modal-add-inventory">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">📦 Add Inventory Item</div><button class="modal-close" onclick="closeModal('modal-add-inventory')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">📦 Add / Update Stock</div><button class="modal-close" onclick="closeM('modal-add-inventory')">✕</button></div>
     <div class="alert" id="inv-alert"></div>
     <div class="form-group"><label class="form-label">Item Name *</label><input class="form-input" id="inv-name" placeholder="DAP Fertilizer"/></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Category</label>
         <select class="form-select" id="inv-category">
+          <option value="diesel">⛽ Diesel</option>
           <option value="fertilizer">🧪 Fertilizer</option>
           <option value="seeds">🌱 Seeds</option>
           <option value="pesticide">💊 Pesticide</option>
-          <option value="diesel">⛽ Diesel</option>
           <option value="equipment">🔧 Equipment</option>
           <option value="other">📦 Other</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Unit</label>
-        <select class="form-select" id="inv-unit"><option value="kg">kg</option><option value="litre">Litre</option><option value="bag">Bag</option><option value="piece">Piece</option><option value="ton">Ton</option></select>
+        <select class="form-select" id="inv-unit"><option value="litre">Litre</option><option value="kg">kg</option><option value="bag">Bag</option><option value="piece">Piece</option><option value="ton">Ton</option></select>
       </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Quantity *</label><input class="form-input" type="number" id="inv-qty" placeholder="100"/></div>
       <div class="form-group"><label class="form-label">Low Stock Alert</label><input class="form-input" type="number" id="inv-min" placeholder="10"/></div>
     </div>
-    <div class="form-group"><label class="form-label">Price per Unit (₨)</label><input class="form-input" type="number" id="inv-price" placeholder="0"/></div>
-    <button class="btn btn-primary btn-full" id="inv-btn" onclick="addInventory()">✅ Add Item</button>
+    <div class="form-group"><label class="form-label">Price/Unit (₨)</label><input class="form-input" type="number" id="inv-price" placeholder="0"/></div>
+    <div style="background:var(--primary-dim);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;font-size:12px;color:var(--primary);font-weight:600;margin-bottom:14px">
+      💡 If item already exists, quantity will be added to existing stock
+    </div>
+    <button class="btn btn-primary btn-full" id="inv-btn" onclick="addInventory()">✅ Add to Stock</button>
   </div>
 </div>
 
-<!-- MODAL: View Farmer -->
+<!-- MODAL: Issue Inventory -->
+<div class="modal-overlay" id="modal-issue-inventory">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📤 Issue from Stock</div><button class="modal-close" onclick="closeM('modal-issue-inventory')">✕</button></div>
+    <div class="alert" id="issue-alert"></div>
+    <input type="hidden" id="issue-inv-id"/>
+    <div id="issue-item-info" style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;font-size:13px;font-weight:600"></div>
+    <div class="form-group"><label class="form-label">Quantity *</label><input class="form-input" type="number" id="issue-qty" placeholder="0"/></div>
+    <div class="form-group"><label class="form-label">Farm *</label>
+      <select class="form-select" id="issue-farm" onchange="loadFarmFarmers('issue-farmer')"><option value="">Select farm...</option></select>
+    </div>
+    <!-- Charge to -->
+    <div class="form-group">
+      <label class="form-label">Charged To *</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" id="issue-charge-landlord" onclick="setIssueCharge('landlord')"
+          style="padding:12px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary-dim);color:var(--primary);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+          💼 Landlord
+        </button>
+        <button type="button" id="issue-charge-farmer" onclick="setIssueCharge('farmer')"
+          style="padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)">
+          👨‍🌾 Farmer Debt
+        </button>
+      </div>
+      <input type="hidden" id="issue-charge" value="landlord"/>
+    </div>
+    <div class="form-group hidden" id="issue-farmer-group">
+      <label class="form-label">Farmer *</label>
+      <select class="form-select" id="issue-farmer"><option value="">Select farmer...</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Value (₨) for records</label><input class="form-input" type="number" id="issue-value" placeholder="0"/></div>
+    <button class="btn btn-primary btn-full" id="issue-btn" onclick="issueInventory()">📤 Issue</button>
+  </div>
+</div>
+
+<!-- MODAL: Farmer Detail -->
 <div class="modal-overlay" id="modal-farmer-detail">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">👨‍🌾 Farmer Details</div><button class="modal-close" onclick="closeModal('modal-farmer-detail')">✕</button></div>
+    <div class="modal-header"><div class="modal-title">👨‍🌾 Farmer Details</div><button class="modal-close" onclick="closeM('modal-farmer-detail')">✕</button></div>
     <div id="farmer-detail-content"></div>
+  </div>
+</div>
+
+<!-- MODAL: Notifications -->
+<div class="modal-overlay" id="modal-notifications">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Notifications</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>
+        <button class="modal-close" onclick="closeM('modal-notifications')">✕</button>
+      </div>
+    </div>
+    <div id="notif-list"></div>
   </div>
 </div>
 
 <div id="toast-root"></div>
 <div id="page-loader" class="page-loader">
-  <div class="loader-brand">
-    <div class="loader-icon">🌾</div>
-  </div>
+  <div class="loader-brand"><div class="loader-icon">🌾</div></div>
   <div class="spinner"></div>
   <div class="loader-msg">Loading...</div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, addDoc, updateDoc, deleteDoc,
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut,
+         indexedDBLocalPersistence, setPersistence }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, initializeFirestore, persistentLocalCache,
+         doc, getDoc, addDoc, updateDoc, deleteDoc,
          collection, getDocs, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
-const app=initializeApp(CONFIG), auth=getAuth(app);
+const app=initializeApp(CONFIG);
+const auth=getAuth(app);
+setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
 let db;
-try {
-  db = initializeFirestore(app, { localCache: persistentLocalCache() });
-} catch(e) {
-  db = getFirestore(app);
-}
+try{ db=initializeFirestore(app,{localCache:persistentLocalCache()}); }catch(e){ db=getFirestore(app); }
 
-// ── State ─────────────────────────────────────────────────
-let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myDebts=[], myHarvests=[], myInventory=[];
+let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myHarvests=[], myInventory=[], myNotifs=[];
 
 // ── Theme ─────────────────────────────────────────────────
-function initTheme(){document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');}
-window.toggleTheme=function(){const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
+const initTheme=()=>document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');
+window.toggleTheme=()=>{const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
 initTheme();
 
 // ── Toast ─────────────────────────────────────────────────
-function toast(msg,type='success'){const r=document.getElementById('toast-root'),el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<span>${{success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'}[type]}</span><span>${msg}</span>`;r.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3500);}
-
-// ── Alert ─────────────────────────────────────────────────
-function showAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
-function clearAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
-
-// ── Loader ────────────────────────────────────────────────
-function hideLoader(){const el=document.getElementById('page-loader');if(el){el.classList.add('hidden');}}
-
-// ── Skeleton Loaders ──────────────────────────────────────
-function showSkeleton() {
-  const statsGrid = document.getElementById('stats-grid');
-  if (statsGrid) {
-    statsGrid.innerHTML = `
-      ${[1,2,3,4].map(()=>`
-        <div class="skeleton-stat">
-          <div class="skeleton skeleton-text" style="width:40px;height:40px;border-radius:10px"></div>
-          <div class="skeleton skeleton-text" style="width:60%;margin-top:4px"></div>
-          <div class="skeleton skeleton-title" style="width:40%;margin-top:6px"></div>
-        </div>`).join('')}`;
-  }
+function toast(msg,type='success'){
+  const r=document.getElementById('toast-root'),el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'}[type]||'✅'}</span><span>${msg}</span>`;
+  r.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3500);
 }
 
-function loaderError(msg){document.getElementById('page-loader').innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:var(--danger);font-size:15px;font-weight:700;margin-bottom:8px">Error</div><div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div><button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button></div>`;}
+// ── Alert ─────────────────────────────────────────────────
+function setAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
+function clrAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
+
+// ── Loader ────────────────────────────────────────────────
+function hideLoader(){document.getElementById('page-loader').classList.add('hidden');}
+function loaderError(msg){document.getElementById('page-loader').innerHTML=`<div style="text-align:center;padding:24px"><div style="font-size:36px;margin-bottom:12px">⚠️</div><div style="color:var(--danger);font-weight:700;margin-bottom:8px">Error</div><div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div><button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button></div>`;}
 
 // ── Modal ─────────────────────────────────────────────────
-window.openModal=id=>document.getElementById(id)?.classList.add('open');
-window.closeModal=id=>document.getElementById(id)?.classList.remove('open');
+window.openM=id=>document.getElementById(id)?.classList.add('open');
+window.closeM=id=>document.getElementById(id)?.classList.remove('open');
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
 
 // ── Sidebar ───────────────────────────────────────────────
 document.getElementById('hamburger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');});
 document.getElementById('sidebar-overlay').addEventListener('click',()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');});
-function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
+function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
 // ── Tabs ──────────────────────────────────────────────────
-const TAB_TITLES={overview:'Overview',bookkeeping:'Bookkeeping',farms:'Farms',farmers:'Farmers',expenses:'Expenses',debts:'Farmer Debts',harvests:'Harvests',inventory:'Inventory',reports:'Reports'};
+const TABS={overview:'Overview',bookkeeping:'Bookkeeping',farms:'Farms',farmers:'Farmers',expenses:'Expenses',harvests:'Harvests',inventory:'Inventory',reports:'Reports'};
 window.switchTab=function(tab){
   document.querySelectorAll('[data-tab-btn]').forEach(b=>b.classList.toggle('active',b.dataset.tabBtn===tab));
   document.querySelectorAll('[data-tab-content]').forEach(c=>c.classList.toggle('hidden',c.dataset.tabContent!==tab));
-  document.getElementById('page-title').textContent=TAB_TITLES[tab]||tab;
-  closeSidebar();
+  document.getElementById('page-title').textContent=TABS[tab]||tab;
+  closeSB();
+  if(tab==='bookkeeping')buildLedger();
+  if(tab==='reports')renderReports();
 };
-document.querySelectorAll('[data-tab-btn]').forEach(b=>b.addEventListener('click',()=>{
-  switchTab(b.dataset.tabBtn);
-  if(b.dataset.tabBtn==='reports') renderReports();
-  if(b.dataset.tabBtn==='bookkeeping') buildLedger();
-}));
+document.querySelectorAll('[data-tab-btn]').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tabBtn)));
 
 // ── Online ────────────────────────────────────────────────
-function updateOnline(){const on=navigator.onLine;document.getElementById('online-dot').classList.toggle('off',!on);document.getElementById('offline-bar').classList.toggle('show',!on);}
-window.addEventListener('online',updateOnline);window.addEventListener('offline',updateOnline);updateOnline();
+function updOnline(){const on=navigator.onLine;document.getElementById('online-dot').classList.toggle('off',!on);document.getElementById('offline-bar').classList.toggle('show',!on);}
+window.addEventListener('online',()=>{updOnline();toast('Back online','success');});
+window.addEventListener('offline',()=>{updOnline();toast('Offline — using cached data','warning');});
+updOnline();
 
 // ── Helpers ───────────────────────────────────────────────
-function fmtMoney(n){return '₨ '+Number(n||0).toLocaleString('en-PK');}
-function fmtDate(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'});}
-function initial(name){return(name||'?').charAt(0).toUpperCase();}
-const CAT_ICON={seeds:'🌱',fertilizer:'🧪',diesel:'⛽',labor:'👷',pesticide:'💊',water:'💧',equipment:'🔧',other:'📦'};
+function fmtM(n){return '₨ '+Number(n||0).toLocaleString('en-PK');}
+function fmtD(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'});}
+function ini(n){return(n||'?').charAt(0).toUpperCase();}
+const CAT={diesel:'⛽',fertilizer:'🧪',seeds:'🌱',labor:'👷',pesticide:'💊',tractor:'🚜',water:'💧',equipment:'🔧',other:'📦'};
 
 // ── Logout ────────────────────────────────────────────────
 window.doLogout=async function(){if(!confirm('Logout?'))return;await signOut(auth);window.location.href='../index.html';};
 
-// ── Auth Guard ────────────────────────────────────────────
-// Use authStateReady (Firebase 10+) to wait for session restore
-// Falls back to onAuthStateChanged with a small delay for redirect
-const _waitForAuth = new Promise(resolve => {
-  const unsub = onAuthStateChanged(auth, user => {
-    unsub();
-    resolve(user);
-  });
-});
-
-_waitForAuth.then(async user => {
-  if (!user) {
-    window.location.replace('../index.html');
-    return;
-  }
-  try {
-    const timeout = new Promise((_,reject) =>
-      setTimeout(() => reject(new Error('Connection timeout')), 12000)
-    );
-    const snap = await Promise.race([getDoc(doc(db,'users',user.uid)), timeout]);
-    if (!snap.exists()) { loaderError('Account not found. Contact admin.'); return; }
-    const data = snap.data();
-    if (data.role !== 'manager') { loaderError('Role is: "' + data.role + '" — need "manager"'); return; }
-    if (data.status === 'suspended') { loaderError('Account suspended. Contact admin.'); return; }
-    ME = {uid: user.uid, ...data};
-    document.getElementById('user-name').textContent = ME.name || 'Manager';
-    document.getElementById('user-avatar').textContent = initial(ME.name);
-    document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('debt-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('harv-date').value = new Date().toISOString().split('T')[0];
-    showSkeleton();
+// ── Auth ──────────────────────────────────────────────────
+const _waitForAuth=new Promise(resolve=>{const u=onAuthStateChanged(auth,user=>{u();resolve(user);});});
+_waitForAuth.then(async user=>{
+  if(!user){window.location.replace('../index.html');return;}
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timeout')),12000));
+    const snap=await Promise.race([getDoc(doc(db,'users',user.uid)),timeout]);
+    if(!snap.exists()){loaderError('Account not found.');return;}
+    const data=snap.data();
+    if(data.role!=='manager'){loaderError('Wrong role: '+data.role);return;}
+    if(data.status==='suspended'){loaderError('Account suspended.');return;}
+    ME={uid:user.uid,...data};
+    document.getElementById('user-name').textContent=ME.name||'Manager';
+    document.getElementById('user-avatar').textContent=ini(ME.name);
+    document.getElementById('exp-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('harv-date').value=new Date().toISOString().split('T')[0];
     await loadAll();
     hideLoader();
-  } catch(e) { loaderError(e.message); }
+  }catch(e){loaderError(e.message);}
 });
 
-// ── Load All ──────────────────────────────────────────────
-async function safeGet(q){try{return await getDocs(q);}catch(e){console.warn('Query failed:',e.message);return {docs:[]};}}
+// ── Skeleton ──────────────────────────────────────────────
+function showSkeleton(){
+  const g=document.getElementById('stats-grid');
+  if(g)g.innerHTML=[1,2,3,4].map(()=>`<div class="skeleton-stat"><div class="skeleton skeleton-text" style="width:40px;height:40px;border-radius:10px"></div><div class="skeleton skeleton-text" style="width:60%;margin-top:8px"></div><div class="skeleton skeleton-title" style="width:40%;margin-top:6px"></div></div>`).join('');
+}
 
+// ── Safe query ────────────────────────────────────────────
+async function safeGet(q){try{return await getDocs(q);}catch(e){console.warn('Query:',e.message);return{docs:[]};}}
+
+// ── Load All ──────────────────────────────────────────────
 async function loadAll(){
-  try{
-    const [fS,frS,eS,dS,hS,iS]=await Promise.all([
-      safeGet(query(collection(db,'farms'),   where('managerId','==',ME.uid))),
-      safeGet(query(collection(db,'farmers'), where('managerId','==',ME.uid))),
-      safeGet(query(collection(db,'expenses'),where('managerId','==',ME.uid))),
-      safeGet(query(collection(db,'debts'),   where('managerId','==',ME.uid))),
-      safeGet(query(collection(db,'harvests'),where('managerId','==',ME.uid))),
-      safeGet(query(collection(db,'inventory'),where('managerId','==',ME.uid)))
-    ]);
-    myFarms    =fS.docs.map(d=>({id:d.id,...d.data()}));
-    myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
-    myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
-    myDebts    =dS.docs.map(d=>({id:d.id,...d.data()}));
-    myHarvests =hS.docs.map(d=>({id:d.id,...d.data()}));
-    myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
-    populateSelects();
-    renderOverview();renderFarms();renderFarmers(myFarmers);
-    renderExpenses(myExpenses);renderDebts();renderHarvests();renderInventory();
-  }catch(e){toast('Load error: '+e.message,'error');}
+  showSkeleton();
+  const mid=ME.uid, lid=ME.landlordId||'';
+  const [fS,frS,eS,hS,iS,nS]=await Promise.all([
+    safeGet(query(collection(db,'farms'),where('managerId','==',mid))),
+    safeGet(query(collection(db,'farmers'),where('managerId','==',mid))),
+    safeGet(query(collection(db,'expenses'),where('managerId','==',mid))),
+    safeGet(query(collection(db,'harvests'),where('managerId','==',mid))),
+    safeGet(query(collection(db,'inventory'),where('landlordId','==',lid))),
+    safeGet(query(collection(db,'notifications'),where('toUid','==',mid),where('read','==',false))),
+  ]);
+  myFarms    =fS.docs.map(d=>({id:d.id,...d.data()}));
+  myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
+  myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
+  myHarvests =hS.docs.map(d=>({id:d.id,...d.data()}));
+  myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
+  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()}));
+  populateSelects();
+  renderOverview();renderFarms();renderFarmers(myFarmers);
+  renderExpenses(myExpenses);renderHarvests();renderInventory();
+  updateNotifBadge();
 }
 
 // ── Populate Selects ──────────────────────────────────────
 function populateSelects(){
-  const farmOpts=myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
-  ['farmer-farm','exp-farm','harv-farm','bk-farm'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=(id==='bk-farm'?'<option value="">All Farms</option>':'<option value="">Select farm...</option>')+farmOpts;});
-  document.getElementById('exp-farm-filter').innerHTML='<option value="">All Farms</option>'+farmOpts;
-  const farmerOpts=myFarmers.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
-  ['debt-farmer','harv-farmer'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select farmer...</option>'+farmerOpts;});
+  const fo=myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  ['exp-farm','harv-farm','issue-farm'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select farm...</option>'+fo;});
+  ['farmer-farm'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select farm...</option>'+fo;});
+  // Bookkeeping filter
+  const bkFarm=document.getElementById('bk-farm');
+  if(bkFarm)bkFarm.innerHTML='<option value="">All Farms</option>'+fo;
+  // Expense filter
+  const ef=document.getElementById('exp-farm-filter');
+  if(ef)ef.innerHTML='<option value="">All Farms</option>'+fo;
 }
+
+window.loadFarmFarmers=function(targetId){
+  const farmId=document.getElementById(
+    targetId==='exp-farmer'?'exp-farm':targetId==='harv-farmer'?'harv-farm':'issue-farm'
+  )?.value;
+  const farmers=myFarmers.filter(f=>f.farmId===farmId);
+  const el=document.getElementById(targetId);
+  if(el)el.innerHTML='<option value="">Select farmer...</option>'+farmers.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+};
+
+// ── Charge toggle ─────────────────────────────────────────
+window.setCharge=function(val){
+  document.getElementById('exp-charge').value=val;
+  const lb=document.getElementById('charge-landlord-btn');
+  const fb=document.getElementById('charge-farmer-btn');
+  const fg=document.getElementById('farmer-select-group');
+  if(val==='landlord'){
+    lb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary-dim);color:var(--primary);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fg.classList.add('hidden');
+  }else{
+    fb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--warning);background:var(--warning-dim);color:var(--warning);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    lb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fg.classList.remove('hidden');
+  }
+};
+
+window.setIssueCharge=function(val){
+  document.getElementById('issue-charge').value=val;
+  const lb=document.getElementById('issue-charge-landlord');
+  const fb=document.getElementById('issue-charge-farmer');
+  const fg=document.getElementById('issue-farmer-group');
+  if(val==='landlord'){
+    lb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--primary);background:var(--primary-dim);color:var(--primary);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fg.classList.add('hidden');
+  }else{
+    fb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--warning);background:var(--warning-dim);color:var(--warning);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    lb.style.cssText='padding:12px;border-radius:var(--radius-sm);border:2px solid var(--border);background:transparent;color:var(--muted);font-weight:700;font-size:13px;cursor:pointer;font-family:var(--font)';
+    fg.classList.remove('hidden');
+  }
+};
 
 // ── Overview ──────────────────────────────────────────────
 function renderOverview(){
-  const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalLandlordExp=myExpenses.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalFarmerDebt =myExpenses.filter(e=>e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
-  const totalDebt=myDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
   document.getElementById('overview-sub').textContent=`${myFarms.length} farms · ${myFarmers.length} farmers`;
   document.getElementById('stats-grid').innerHTML=`
     <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-label">Farms</div><div class="stat-value">${myFarms.length}</div></div>
     <div class="stat-card"><div class="stat-icon">👨‍🌾</div><div class="stat-label">Farmers</div><div class="stat-value">${myFarmers.length}</div></div>
-    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Expenses</div><div class="stat-value" style="font-size:18px;color:var(--danger)">${fmtMoney(totalExp)}</div></div>
-    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Farmer Debts</div><div class="stat-value" style="font-size:18px;color:var(--warning)">${fmtMoney(totalDebt)}</div></div>`;
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Expenses</div><div class="stat-value" style="font-size:16px;color:var(--danger)">${fmtM(totalLandlordExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Farmer Debts</div><div class="stat-value" style="font-size:16px;color:var(--warning)">${fmtM(totalFarmerDebt)}</div></div>`;
+
   document.getElementById('overview-farms').innerHTML=myFarms.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div></div>`
-    :myFarms.slice(0,4).map(f=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
-        <div><div style="font-weight:700;font-size:13px">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres</div></div>
-        <span class="badge badge-green">${f.season||'—'}</span>
-      </div>`).join('');
-  document.getElementById('overview-expenses').innerHTML=myExpenses.length===0
-    ?`<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No expenses yet</div></div>`
-    :myExpenses.sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4).map(e=>{
-      const farm=myFarms.find(f=>f.id===e.farmId);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
-        <div><div style="font-weight:700;font-size:13px">${CAT_ICON[e.type]||'📦'} ${e.type}</div><div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${fmtDate(e.date)}</div></div>
-        <span style="font-weight:700;color:var(--danger)">${fmtMoney(e.amount)}</span>
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div><div class="empty-sub">Add your first farm</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-farm')">➕ Add Farm</button></div>`
+    :myFarms.slice(0,4).map(f=>{
+      const exp=myExpenses.filter(e=>e.farmId===f.id&&e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+      const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)">
+        <div><div style="font-weight:700;font-size:14px">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres</div></div>
+        <div style="text-align:right"><div style="font-weight:800;font-size:13px;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtM(inc-exp)}</div><div style="font-size:10px;color:var(--muted)">profit</div></div>
       </div>`;}).join('');
+
+  // Recent transactions
+  const recent=[
+    ...myExpenses.map(e=>({date:e.date,title:(CAT[e.type]||'📦')+' '+e.type,sub:myFarms.find(f=>f.id===e.farmId)?.name||'—',amount:-Number(e.amount||0),badge:e.chargedTo==='farmer'?'badge-yellow':'badge-red',badgeText:e.chargedTo==='farmer'?'Farmer Debt':'Landlord'})),
+    ...myHarvests.map(h=>({date:h.date,title:'🌾 '+h.crop,sub:myFarms.find(f=>f.id===h.farmId)?.name||'—',amount:Number(h.totalIncome||0),badge:'badge-green',badgeText:'Harvest'}))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  document.getElementById('overview-recent').innerHTML=recent.length===0
+    ?`<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-title">No transactions yet</div></div>`
+    :recent.map(r=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:38px;height:38px;border-radius:10px;background:${r.amount>=0?'var(--primary-dim)':'var(--danger-dim)'};display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${r.amount>=0?'🌾':'💸'}</div>
+        <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${r.title}</div><div style="font-size:11px;color:var(--muted)">${r.sub} · ${r.date}</div></div>
+        <div style="text-align:right;flex-shrink:0"><div style="font-weight:800;font-size:13px;color:${r.amount>=0?'var(--primary)':'var(--danger)'}">${r.amount>=0?'+':''}${fmtM(Math.abs(r.amount))}</div><span class="badge ${r.badge}" style="font-size:9px">${r.badgeText}</span></div>
+      </div>`).join('');
 }
 
 // ── Farms ─────────────────────────────────────────────────
 function renderFarms(){
   document.getElementById('farms-sub').textContent=`${myFarms.length} farm${myFarms.length!==1?'s':''}`;
   document.getElementById('farms-list').innerHTML=myFarms.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div><div class="empty-sub">Add your first farm</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-farm')">➕ Add Farm</button></div>`
     :myFarms.map(f=>{
-      const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
-      const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+      const landlordExp=myExpenses.filter(e=>e.farmId===f.id&&e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+      const farmerDebt =myExpenses.filter(e=>e.farmId===f.id&&e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+      const totalInc   =myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+      const profit=totalInc-landlordExp;
       const farmers=myFarmers.filter(fr=>fr.farmId===f.id);
-      return `<div class="card mb-16">
+      return `<div class="card mb-12">
         <div class="card-body">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-            <div>
-              <div style="font-size:16px;font-weight:800">${f.name}</div>
-              <div style="font-size:12px;color:var(--muted);margin-top:2px">${f.location||'—'} · ${f.area||'?'} acres · ${f.crop||'No crop'}</div>
-            </div>
+            <div><div style="font-size:16px;font-weight:800">${f.name}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${f.location||'—'} · ${f.area||'?'} acres · ${f.crop||'No crop'} · ${f.season||'—'}</div></div>
             <span class="badge badge-green">${f.season||'—'}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">EXPENSES</div>
-              <div style="font-weight:800;color:var(--danger);font-size:13px">${fmtMoney(exp)}</div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700">EXPENSES</div>
+              <div style="font-weight:800;color:var(--danger);font-size:12px">${fmtM(landlordExp)}</div>
             </div>
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">INCOME</div>
-              <div style="font-weight:800;color:var(--primary);font-size:13px">${fmtMoney(inc)}</div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700">INCOME</div>
+              <div style="font-weight:800;color:var(--primary);font-size:12px">${fmtM(totalInc)}</div>
             </div>
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">PROFIT</div>
-              <div style="font-weight:800;font-size:13px;color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(inc-exp)}</div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700">PROFIT</div>
+              <div style="font-weight:800;font-size:12px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">👨‍🌾 ${farmers.length} farmer${farmers.length!==1?'s':''}: ${farmers.map(f=>f.name).slice(0,3).join(', ')||'None'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">👨‍🌾 ${farmers.length} farmer${farmers.length!==1?'s':''}: ${farmers.map(f=>f.name).slice(0,3).join(', ')||'None'}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-expense');document.getElementById('exp-farm').value='${f.id}'">+ Expense</button>
-            <button class="btn btn-ghost btn-sm" onclick="openModal('modal-add-harvest');document.getElementById('harv-farm').value='${f.id}';loadFarmFarmers()">+ Harvest</button>
-            <button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️ Report</button>
+            <button class="btn btn-primary btn-sm" onclick="openM('modal-add-expense');document.getElementById('exp-farm').value='${f.id}'">+ Expense</button>
+            <button class="btn btn-ghost btn-sm" onclick="openM('modal-add-harvest');document.getElementById('harv-farm').value='${f.id}';loadFarmFarmers('harv-farmer')">+ Harvest</button>
+            <button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️</button>
             <button class="btn btn-ghost btn-sm" onclick="deleteFarm('${f.id}','${f.name}')">🗑️</button>
           </div>
         </div>
@@ -616,140 +688,122 @@ function renderFarms(){
 function renderFarmers(list){
   document.getElementById('farmers-sub').textContent=`${list.length} farmer${list.length!==1?'s':''}`;
   document.getElementById('farmers-list').innerHTML=list.length===0
-    ?`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers yet</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-farmer')">➕ Add Farmer</button></div>`
     :list.map(f=>{
       const farm=myFarms.find(fm=>fm.id===f.farmId);
-      const debt=myDebts.filter(d=>d.farmerId===f.id&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1" onclick="viewFarmer('${f.id}')" style="cursor:pointer">
-          <div style="width:42px;height:42px;border-radius:10px;background:var(--primary-dim);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);font-size:16px;flex-shrink:0;cursor:pointer" onclick="viewFarmer('${f.id}')">${initial(f.name)}</div>
+      const debt=myExpenses.filter(e=>e.farmerId===f.id&&e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+      const paid=myHarvests.filter(h=>h.farmerId===f.id).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
+      const netDebt=Math.max(0,debt-paid);
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)" onclick="viewFarmer('${f.id}')">
+        <div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1;cursor:pointer">
+          <div style="width:42px;height:42px;border-radius:10px;background:var(--primary-dim);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);font-size:16px;flex-shrink:0">${ini(f.name)}</div>
           <div style="min-width:0">
             <div style="font-weight:700;font-size:14px">${f.name} ${f.role==='main'?'<span class="badge badge-gold" style="font-size:9px">MAIN</span>':''}</div>
             <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${f.phone||'No phone'}</div>
-            ${debt>0?`<div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:2px">Debt: ${fmtMoney(debt)}</div>`:''}
+            ${netDebt>0?`<div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:2px">Debt: ${fmtM(netDebt)}</div>`:'<div style="font-size:11px;color:var(--primary);margin-top:2px">No debt ✅</div>'}
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:8px">
-          <span class="badge badge-blue">${f.sharePercentage||50}%</span>
-          <button class="btn btn-ghost btn-sm" onclick="deleteFarmer('${f.id}','${f.name}')">🗑️</button>
-        </div>
+        <span class="badge badge-blue" style="flex-shrink:0">${f.sharePercentage||50}%</span>
       </div>`;}).join('');
 }
 window.filterFarmers=v=>renderFarmers(v?myFarmers.filter(f=>(f.name+f.phone).toLowerCase().includes(v.toLowerCase())):myFarmers);
+
 window.viewFarmer=function(id){
   const f=myFarmers.find(x=>x.id===id);if(!f)return;
   const farm=myFarms.find(fm=>fm.id===f.farmId);
-  const debts=myDebts.filter(d=>d.farmerId===id);
-  const totalDebt=debts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-  const paidDebt=debts.filter(d=>d.status==='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+  const debts=myExpenses.filter(e=>e.farmerId===id&&e.chargedTo==='farmer');
+  const totalDebt=debts.reduce((s,e)=>s+Number(e.amount||0),0);
+  const paid=myHarvests.filter(h=>h.farmerId===id).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
+  const netDebt=Math.max(0,totalDebt-paid);
   document.getElementById('farmer-detail-content').innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-      <div style="width:52px;height:52px;border-radius:14px;background:var(--primary-dim);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--primary)">${initial(f.name)}</div>
-      <div><div style="font-size:18px;font-weight:800">${f.name}</div><div style="color:var(--muted);font-size:13px">${farm?.name||'—'} · ${f.role==='main'?'Main Farmer':'Partner'}</div></div>
+      <div style="width:52px;height:52px;border-radius:14px;background:var(--primary-dim);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:var(--primary)">${ini(f.name)}</div>
+      <div><div style="font-size:18px;font-weight:800">${f.name}</div><div style="color:var(--muted);font-size:13px">${farm?.name||'—'} · ${f.role==='main'?'Main':'Partner'} · ${f.sharePercentage||50}% share</div></div>
     </div>
     <div class="info-list">
       <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${f.phone||'—'}</span></div>
-      <div class="info-row"><span class="info-label">Share</span><span class="info-value">${f.sharePercentage||50}%</span></div>
-      <div class="info-row"><span class="info-label">Active Debt</span><span class="info-value text-danger">${fmtMoney(totalDebt)}</span></div>
-      <div class="info-row"><span class="info-label">Paid Debt</span><span class="info-value text-primary">${fmtMoney(paidDebt)}</span></div>
+      <div class="info-row"><span class="info-label">Total Debt Taken</span><span class="info-value text-danger">${fmtM(totalDebt)}</span></div>
+      <div class="info-row"><span class="info-label">Paid via Harvest</span><span class="info-value text-primary">${fmtM(paid)}</span></div>
+      <div class="info-row"><span class="info-label" style="font-weight:800">Net Debt</span><span class="info-value" style="font-size:16px;font-weight:800;color:${netDebt>0?'var(--danger)':'var(--primary)'}">${fmtM(netDebt)}</span></div>
     </div>
-    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-farmer-detail');openModal('modal-add-debt');document.getElementById('debt-farmer').value='${id}'">+ Add Debt</button>
-      <button class="btn btn-outline btn-sm" onclick="printFarmerLedger('${id}')">🖨️ Print Ledger</button>
+    <div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Debt History</div>
+      ${debts.length===0?'<div style="color:var(--muted);font-size:13px">No debts</div>':
+        debts.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px;font-weight:600">${CAT[e.type]||'📦'} ${e.type}</div><div style="font-size:11px;color:var(--muted)">${e.date}${e.notes?' · '+e.notes:''}</div></div><span style="font-weight:700;color:var(--danger)">${fmtM(e.amount)}</span></div>`).join('')}
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="closeM('modal-farmer-detail');openM('modal-add-expense');setCharge('farmer');loadFarmFarmers('exp-farmer');document.getElementById('exp-farm').value='${f.farmId}';loadFarmFarmers('exp-farmer');setTimeout(()=>{document.getElementById('exp-farmer').value='${id}'},100)">+ Add Debt</button>
+      <button class="btn btn-outline btn-sm" onclick="printFarmerLedger('${id}')">🖨️ Ledger</button>
     </div>`;
-  openModal('modal-farmer-detail');
+  openM('modal-farmer-detail');
 };
 
 // ── Expenses ──────────────────────────────────────────────
 function renderExpenses(list){
   const total=list.reduce((s,e)=>s+Number(e.amount||0),0);
-  document.getElementById('expenses-sub').textContent=`${list.length} records · Total: ${fmtMoney(total)}`;
+  const landlord=list.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+  const farmer=list.filter(e=>e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+  document.getElementById('expenses-sub').textContent=`${list.length} records · ${fmtM(total)} total`;
   document.getElementById('expenses-list').innerHTML=list.length===0
-    ?`<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No expenses yet</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">No expenses yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-expense')">➕ Add Expense</button></div>`
     :list.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>{
       const farm=myFarms.find(f=>f.id===e.farmId);
+      const farmer=myFarmers.find(f=>f.id===e.farmerId);
       return `<div class="card mb-8">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-          <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-            <div style="width:40px;height:40px;border-radius:10px;background:var(--danger-dim);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT_ICON[e.type]||'📦'}</div>
-            <div style="min-width:0">
-              <div style="font-weight:700;font-size:14px">${e.type?.charAt(0).toUpperCase()+e.type?.slice(1)||'—'}</div>
-              <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${fmtDate(e.date)}</div>
-              ${e.description?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${e.description}</div>`:''}
-            </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:14px 16px">
+          <div style="width:42px;height:42px;border-radius:10px;background:${e.chargedTo==='farmer'?'var(--warning-dim)':'var(--danger-dim)'};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT[e.type]||'📦'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14px">${e.type?.charAt(0).toUpperCase()+e.type?.slice(1)||'—'}</div>
+            <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${fmtD(e.date)}</div>
+            ${e.chargedTo==='farmer'&&farmer?`<div style="font-size:11px;color:var(--warning)">👨‍🌾 ${farmer.name}'s debt</div>`:''}
+            ${e.notes?`<div style="font-size:11px;color:var(--muted)">${e.notes}</div>`:''}
           </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:10px">
-            <div style="font-weight:800;font-size:15px;color:var(--danger)">${fmtMoney(e.amount)}</div>
-            ${e.quantity?`<div style="font-size:10px;color:var(--muted)">${e.quantity} units</div>`:''}
-            <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="deleteExpense('${e.id}')">🗑️</button>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-weight:800;font-size:14px;color:${e.chargedTo==='farmer'?'var(--warning)':'var(--danger)'}">${fmtM(e.amount)}</div>
+            <span class="badge ${e.chargedTo==='farmer'?'badge-yellow':'badge-red'}" style="font-size:9px;margin-top:4px">${e.chargedTo==='farmer'?'Farmer Debt':'Landlord'}</span>
+            <div><button class="btn btn-ghost btn-sm" style="margin-top:4px;padding:4px 8px;font-size:11px" onclick="deleteExpense('${e.id}')">🗑️</button></div>
           </div>
         </div>
       </div>`;}).join('');
 }
 window.filterExpenses=function(){
-  const fid=document.getElementById('exp-farm-filter').value;
-  const type=document.getElementById('exp-type-filter').value;
+  const f=document.getElementById('exp-farm-filter').value;
+  const c=document.getElementById('exp-charge-filter').value;
   let list=myExpenses;
-  if(fid)list=list.filter(e=>e.farmId===fid);
-  if(type)list=list.filter(e=>e.type===type);
+  if(f)list=list.filter(e=>e.farmId===f);
+  if(c)list=list.filter(e=>e.chargedTo===c);
   renderExpenses(list);
 };
-
-// ── Debts ─────────────────────────────────────────────────
-function renderDebts(){
-  const active=myDebts.filter(d=>d.status!=='paid');
-  const total=active.reduce((s,d)=>s+Number(d.amount||0),0);
-  document.getElementById('debts-sub').textContent=`${active.length} active · ${fmtMoney(total)} owed`;
-  document.getElementById('debts-list').innerHTML=myDebts.length===0
-    ?`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No debts recorded</div></div>`
-    :myDebts.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>{
-      const farmer=myFarmers.find(f=>f.id===d.farmerId);
-      const paid=d.status==='paid';
-      return `<div class="card mb-8">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-          <div style="min-width:0;flex:1">
-            <div style="font-weight:700;font-size:14px">${farmer?.name||'Unknown'}</div>
-            <div style="font-size:12px;color:var(--muted)">${d.reason||'—'} · ${fmtDate(d.date)}</div>
-            <span class="badge ${paid?'badge-green':'badge-red'}" style="margin-top:6px">${paid?'✅ Paid':'⏳ Pending'}</span>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:12px">
-            <div style="font-weight:800;font-size:15px;color:${paid?'var(--primary)':'var(--danger)'}">${fmtMoney(d.amount)}</div>
-            ${!paid?`<button class="btn btn-primary btn-sm" style="margin-top:6px" onclick="markDebtPaid('${d.id}')">Mark Paid</button>`:''}
-            <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="deleteDebt('${d.id}')">🗑️</button>
-          </div>
-        </div>
-      </div>`;}).join('');
-}
 
 // ── Harvests ──────────────────────────────────────────────
 function renderHarvests(){
   document.getElementById('harvests-sub').textContent=`${myHarvests.length} harvest${myHarvests.length!==1?'s':''}`;
   document.getElementById('harvests-list').innerHTML=myHarvests.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🌾</div><div class="empty-title">No harvests yet</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">🌾</div><div class="empty-title">No harvests yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-harvest')">➕ Record Harvest</button></div>`
     :myHarvests.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(h=>{
       const farm=myFarms.find(f=>f.id===h.farmId);
       const farmer=myFarmers.find(f=>f.id===h.farmerId);
       return `<div class="card mb-12">
         <div class="card-body">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-            <div><div style="font-size:16px;font-weight:800">🌾 ${h.crop}</div><div style="font-size:12px;color:var(--muted)">${farm?.name||'—'} · ${fmtDate(h.date)}</div></div>
-            <span class="badge badge-green">${h.qty||'?'} ${h.unit||''}</span>
+            <div><div style="font-size:16px;font-weight:800">🌾 ${h.crop}</div><div style="font-size:12px;color:var(--muted)">${farm?.name||'—'} · ${h.date} · ${h.season||'—'}</div></div>
+            <span class="badge badge-green">${h.qty} ${h.unit||''}</span>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">TOTAL</div>
-              <div style="font-weight:800;font-size:13px">${fmtMoney(h.totalIncome)}</div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700">TOTAL</div>
+              <div style="font-weight:800;font-size:12px">${fmtM(h.totalIncome)}</div>
+            </div>
+            <div style="background:var(--primary-dim);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px;text-align:center">
+              <div style="font-size:9px;color:var(--muted);font-weight:700">LANDLORD</div>
+              <div style="font-weight:800;color:var(--primary);font-size:12px">${fmtM(h.landlordShare)}</div>
             </div>
             <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">LANDLORD</div>
-              <div style="font-weight:800;color:var(--primary);font-size:13px">${fmtMoney(h.landlordShare)}</div>
-            </div>
-            <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:10px;text-align:center">
-              <div style="font-size:10px;color:var(--muted);font-weight:700">FARMER NET</div>
-              <div style="font-weight:800;font-size:13px;color:${h.farmerNet>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(h.farmerNet)}</div>
+              <div style="font-size:9px;color:var(--muted);font-weight:700">FARMER NET</div>
+              <div style="font-weight:800;font-size:12px;color:${h.farmerNet>=0?'var(--primary)':'var(--danger)'}">${fmtM(h.farmerNet)}</div>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--muted)">👨‍🌾 ${farmer?.name||'—'} · Debt deducted: ${fmtMoney(h.debtDeducted)}</div>
+          <div style="font-size:11px;color:var(--muted)">👨‍🌾 ${farmer?.name||'—'} · Debt deducted: ${fmtM(h.debtDeducted||0)}</div>
           <div style="margin-top:10px;display:flex;gap:8px">
             <button class="btn btn-outline btn-sm" onclick="printHarvestSlip('${h.id}')">🖨️ Slip</button>
             <button class="btn btn-ghost btn-sm" onclick="deleteHarvest('${h.id}')">🗑️</button>
@@ -761,31 +815,146 @@ function renderHarvests(){
 // ── Inventory ─────────────────────────────────────────────
 function renderInventory(){
   const low=myInventory.filter(i=>Number(i.quantity||0)<=Number(i.minStock||0)).length;
-  document.getElementById('inventory-sub').textContent=`${myInventory.length} items · ${low} low stock`;
+  document.getElementById('inventory-sub').textContent=`${myInventory.length} items · ${low} low`;
   document.getElementById('inv-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Total Items</div><div class="stat-value">${myInventory.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Items</div><div class="stat-value">${myInventory.length}</div></div>
     <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-label">Low Stock</div><div class="stat-value" style="color:var(--warning)">${low}</div></div>`;
   document.getElementById('inventory-list').innerHTML=myInventory.length===0
-    ?`<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No inventory items</div></div>`
+    ?`<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No inventory</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-inventory')">➕ Add Stock</button></div>`
     :myInventory.map(i=>{
       const isLow=Number(i.quantity||0)<=Number(i.minStock||0);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1">
-          <div style="width:40px;height:40px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT_ICON[i.category]||'📦'}</div>
-          <div style="min-width:0">
-            <div style="font-weight:700;font-size:14px">${i.name}</div>
-            <div style="font-size:11px;color:var(--muted)">${i.category||'—'}</div>
-          </div>
+      return `<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="width:42px;height:42px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${CAT[i.category]||'📦'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${i.name}</div>
+          <div style="font-size:11px;color:var(--muted)">${i.category||'—'} · ₨${Number(i.pricePerUnit||0).toLocaleString()}/unit</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:10px">
-          <div style="font-weight:800;font-size:15px;color:${isLow?'var(--warning)':'var(--text)'}">${i.quantity} ${i.unit}</div>
-          <span class="badge ${isLow?'badge-yellow':'badge-green'}" style="margin-top:4px">${isLow?'⚠️ Low':'✅ OK'}</span>
-          <div style="margin-top:6px;display:flex;gap:4px;justify-content:flex-end">
-            <button class="btn btn-ghost btn-sm" onclick="adjustInventory('${i.id}','${i.name}',${i.quantity},'${i.unit}')">Adjust</button>
-            <button class="btn btn-ghost btn-sm" onclick="deleteInventory('${i.id}')">🗑️</button>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-weight:800;font-size:16px;color:${isLow?'var(--warning)':'var(--text)'}">${i.quantity} <span style="font-size:11px;color:var(--muted)">${i.unit}</span></div>
+          <span class="badge ${isLow?'badge-yellow':'badge-green'}" style="font-size:9px">${isLow?'⚠️ Low':'✅ OK'}</span>
+          <div style="margin-top:4px;display:flex;gap:4px;justify-content:flex-end">
+            <button class="btn btn-primary btn-sm" style="padding:4px 8px;font-size:11px" onclick="openIssueModal('${i.id}','${i.name}',${i.quantity},'${i.unit}',${i.pricePerUnit||0})">📤 Issue</button>
+            <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteInventory('${i.id}')">🗑️</button>
           </div>
         </div>
       </div>`;}).join('');
+}
+
+// ── Bookkeeping ───────────────────────────────────────────
+window.buildLedger=function(){
+  const farmFilter=document.getElementById('bk-farm')?.value||'';
+  const typeFilter=document.getElementById('bk-type')?.value||'';
+  let rows=[];
+  myExpenses.forEach(e=>{
+    const farm=myFarms.find(f=>f.id===e.farmId);
+    const farmer=myFarmers.find(f=>f.id===e.farmerId);
+    if(farmFilter&&e.farmId!==farmFilter)return;
+    if(typeFilter==='harvest')return;
+    if(typeFilter==='expense'&&e.chargedTo!=='landlord')return;
+    if(typeFilter==='debt'&&e.chargedTo!=='farmer')return;
+    rows.push({date:e.date,dateObj:new Date(e.date),icon:CAT[e.type]||'📦',title:e.type?.charAt(0).toUpperCase()+e.type?.slice(1),sub:(farm?.name||'—')+(e.chargedTo==='farmer'&&farmer?' · '+farmer.name+' debt':''),amount:-Number(e.amount||0),type:e.chargedTo==='farmer'?'debt':'expense',badge:e.chargedTo==='farmer'?'badge-yellow':'badge-red',badgeText:e.chargedTo==='farmer'?'Farmer Debt':'Landlord'});
+  });
+  myHarvests.forEach(h=>{
+    const farm=myFarms.find(f=>f.id===h.farmId);
+    const farmer=myFarmers.find(f=>f.id===h.farmerId);
+    if(farmFilter&&h.farmId!==farmFilter)return;
+    if(typeFilter&&typeFilter!=='harvest')return;
+    rows.push({date:h.date,dateObj:new Date(h.date),icon:'🌾',title:h.crop+' Harvest',sub:(farm?.name||'—')+(farmer?' · '+farmer.name:''),amount:Number(h.totalIncome||0),type:'harvest',badge:'badge-green',badgeText:'Harvest'});
+  });
+  rows.sort((a,b)=>b.dateObj-a.dateObj);
+  const totalInc=rows.filter(r=>r.type==='harvest').reduce((s,r)=>s+r.amount,0);
+  const totalExp=rows.filter(r=>r.type==='expense').reduce((s,r)=>s+Math.abs(r.amount),0);
+  const totalDebt=rows.filter(r=>r.type==='debt').reduce((s,r)=>s+Math.abs(r.amount),0);
+  const profit=totalInc-totalExp;
+  document.getElementById('bk-sub').textContent=`${rows.length} transactions`;
+  document.getElementById('bk-summary').innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Income</div><div style="font-weight:800;color:var(--primary);font-size:13px;margin-top:4px">${fmtM(totalInc)}</div></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Expenses</div><div style="font-weight:800;color:var(--danger);font-size:13px;margin-top:4px">${fmtM(totalExp)}</div></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Farmer Debts</div><div style="font-weight:800;color:var(--warning);font-size:13px;margin-top:4px">${fmtM(totalDebt)}</div></div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700;text-transform:uppercase">Profit</div><div style="font-weight:800;font-size:13px;margin-top:4px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div></div>`;
+  if(rows.length===0){document.getElementById('bk-timeline').innerHTML=`<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-title">No transactions yet</div></div>`;return;}
+  const grouped={};
+  rows.forEach(r=>{const k=r.date||'Unknown';if(!grouped[k])grouped[k]=[];grouped[k].push(r);});
+  document.getElementById('bk-timeline').innerHTML=Object.keys(grouped).sort((a,b)=>new Date(b)-new Date(a)).map(date=>`
+    <div style="margin-bottom:4px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:10px 4px 6px">${fmtGroupDate(date)}</div>
+      <div class="card">${grouped[date].map(r=>`
+        <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)">
+          <div style="width:40px;height:40px;border-radius:10px;background:${r.type==='harvest'?'var(--primary-dim)':r.type==='debt'?'var(--warning-dim)':'var(--danger-dim)'};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0">${r.icon}</div>
+          <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">${r.title}</div><div style="font-size:11px;color:var(--muted)">${r.sub}</div><span class="badge ${r.badge}" style="font-size:9px;margin-top:3px">${r.badgeText}</span></div>
+          <div style="text-align:right;flex-shrink:0"><div style="font-weight:800;font-size:14px;color:${r.amount>=0?'var(--primary)':'var(--danger)'}">${r.amount>=0?'+':''}${fmtM(Math.abs(r.amount))}</div></div>
+        </div>`).join('')}</div>
+    </div>`).join('');
+};
+function fmtGroupDate(d){if(!d||d==='Unknown')return 'Unknown';const dt=new Date(d);const t=new Date();const y=new Date(t);y.setDate(y.getDate()-1);if(dt.toDateString()===t.toDateString())return 'Today';if(dt.toDateString()===y.toDateString())return 'Yesterday';return dt.toLocaleDateString('en-PK',{weekday:'long',day:'numeric',month:'long'});}
+
+// ── Reports ───────────────────────────────────────────────
+function renderReports(){
+  const totalExp=myExpenses.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalDebt=myExpenses.filter(e=>e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
+  const profit=totalInc-totalExp;
+  document.getElementById('report-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Total Expenses</div><div class="stat-value" style="font-size:16px;color:var(--danger)">${fmtM(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">🌾</div><div class="stat-label">Total Income</div><div class="stat-value" style="font-size:16px;color:var(--primary)">${fmtM(totalInc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:16px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Farmer Debts</div><div class="stat-value" style="font-size:16px;color:var(--warning)">${fmtM(totalDebt)}</div></div>`;
+  document.getElementById('report-farms').innerHTML=myFarms.length===0
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms</div></div>`
+    :myFarms.map(f=>{
+      const exp=myExpenses.filter(e=>e.farmId===f.id&&e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
+      const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
+      const lInc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
+      const profit=lInc-exp;
+      return `<div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div><div style="font-weight:700;font-size:14px">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.crop||'—'} · ${f.area||'?'} acres</div></div>
+          <span style="font-weight:800;font-size:15px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700">EXPENSES</div><div style="font-weight:700;color:var(--danger);font-size:12px">${fmtM(exp)}</div></div>
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700">TOTAL INC</div><div style="font-weight:700;color:var(--primary);font-size:12px">${fmtM(inc)}</div></div>
+          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center"><div style="font-size:9px;color:var(--muted);font-weight:700">MY INCOME</div><div style="font-weight:700;color:var(--primary);font-size:12px">${fmtM(lInc)}</div></div>
+        </div>
+        <div style="margin-top:8px"><button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️ Report</button></div>
+      </div>`;}).join('');
+  document.getElementById('report-debts').innerHTML=myFarmers.map(f=>{
+    const debt=myExpenses.filter(e=>e.farmerId===f.id&&e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+    const paid=myHarvests.filter(h=>h.farmerId===f.id).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
+    const net=Math.max(0,debt-paid);
+    const farm=myFarms.find(fm=>fm.id===f.farmId);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-dim);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary)">${ini(f.name)}</div>
+        <div><div style="font-weight:700;font-size:13px">${f.name}</div><div style="font-size:11px;color:var(--muted)">${farm?.name||'—'}</div></div>
+      </div>
+      ${net>0?`<div style="font-weight:800;color:var(--danger)">${fmtM(net)}</div>`:`<span class="badge badge-green">Clear ✅</span>`}
+    </div>`;}).join('')||`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers</div></div>`;
+}
+
+// ── Notifications ─────────────────────────────────────────
+function updateNotifBadge(){
+  const badge=document.getElementById('notif-badge');
+  if(myNotifs.length>0){badge.textContent=myNotifs.length>9?'9+':myNotifs.length;badge.classList.remove('hidden');}
+  else badge.classList.add('hidden');
+}
+window.markAllRead=async function(){
+  await Promise.all(myNotifs.map(n=>updateDoc(doc(db,'notifications',n.id),{read:true})));
+  myNotifs=[];updateNotifBadge();renderNotifications();toast('All notifications read','success');
+};
+function renderNotifications(){
+  document.getElementById('notif-list').innerHTML=myNotifs.length===0
+    ?`<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-title">No new notifications</div></div>`
+    :myNotifs.map(n=>`<div style="display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div style="font-size:24px">${n.icon||'🔔'}</div>
+        <div><div style="font-weight:700;font-size:13px">${n.title}</div><div style="font-size:12px;color:var(--muted)">${n.message}</div><div style="font-size:10px;color:var(--muted);margin-top:4px">${fmtD(n.createdAt)}</div></div>
+      </div>`).join('');
+}
+// Open notifications renders list
+document.getElementById('notif-btn').addEventListener('click',()=>{renderNotifications();});
+
+async function createNotif(toUid,icon,title,message){
+  try{await addDoc(collection(db,'notifications'),{toUid,icon,title,message,read:false,createdAt:serverTimestamp()});}catch(e){}
 }
 
 // ── ADD FARM ──────────────────────────────────────────────
@@ -796,15 +965,16 @@ window.addFarm=async function(){
   const crop=document.getElementById('farm-crop').value.trim();
   const season=document.getElementById('farm-season').value;
   const btn=document.getElementById('farm-btn');
-  clearAlert('farm-alert');
-  if(!name||!area){showAlert('farm-alert','⚠️ Name and area are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Adding...';
+  clrAlert('farm-alert');
+  if(!name||!area){setAlert('farm-alert','⚠️ Name and area required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
   try{
     await addDoc(collection(db,'farms'),{name,area:Number(area),location,crop,season,managerId:ME.uid,landlordId:ME.landlordId||'',status:'active',createdAt:serverTimestamp()});
-    toast(`✅ ${name} added!`);closeModal('modal-add-farm');
+    toast(`✅ ${name} added!`);closeM('modal-add-farm');
     ['farm-name','farm-area','farm-location','farm-crop'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
-  }catch(e){showAlert('farm-alert','❌ '+e.message);}
+    if(ME.landlordId)await createNotif(ME.landlordId,'🌱','New Farm Added',`${ME.name} added farm: ${name}`);
+  }catch(e){setAlert('farm-alert','❌ '+e.message);}
   btn.disabled=false;btn.textContent='✅ Add Farm';
 };
 
@@ -816,75 +986,57 @@ window.addFarmer=async function(){
   const farmId=document.getElementById('farmer-farm').value;
   const role=document.getElementById('farmer-role').value;
   const btn=document.getElementById('farmer-btn');
-  clearAlert('farmer-alert');
-  if(!name||!farmId){showAlert('farmer-alert','⚠️ Name and farm are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Adding...';
+  clrAlert('farmer-alert');
+  if(!name||!farmId){setAlert('farmer-alert','⚠️ Name and farm required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'farmers'),{name,phone,sharePercentage:Number(share||50),farmId,role,managerId:ME.uid,landlordId:ME.landlordId||'',totalDebt:0,createdAt:serverTimestamp()});
-    toast(`✅ ${name} added!`);closeModal('modal-add-farmer');
+    await addDoc(collection(db,'farmers'),{name,phone,sharePercentage:Number(share||50),farmId,role,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    toast(`✅ ${name} added!`);closeM('modal-add-farmer');
     ['farmer-name','farmer-phone'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('farmer-share').value='50';
     await loadAll();
-  }catch(e){showAlert('farmer-alert','❌ '+e.message);}
+  }catch(e){setAlert('farmer-alert','❌ '+e.message);}
   btn.disabled=false;btn.textContent='✅ Add Farmer';
 };
 
 // ── ADD EXPENSE ───────────────────────────────────────────
-window.calcExpense=function(){
-  const qty=Number(document.getElementById('exp-qty').value||0);
-  const price=Number(document.getElementById('exp-price').value||0);
-  if(qty&&price)document.getElementById('exp-amount').value=qty*price;
+window.calcExp=function(){
+  const q=Number(document.getElementById('exp-qty').value||0);
+  const p=Number(document.getElementById('exp-price').value||0);
+  if(q&&p)document.getElementById('exp-amount').value=q*p;
 };
 window.addExpense=async function(){
   const farmId=document.getElementById('exp-farm').value;
   const type=document.getElementById('exp-type').value;
   const date=document.getElementById('exp-date').value;
-  const qty=document.getElementById('exp-qty').value;
-  const price=document.getElementById('exp-price').value;
-  const amount=document.getElementById('exp-amount').value;
-  const desc=document.getElementById('exp-desc').value.trim();
+  const qty=Number(document.getElementById('exp-qty').value||0);
+  const unit=document.getElementById('exp-unit').value;
+  const price=Number(document.getElementById('exp-price').value||0);
+  const amount=Number(document.getElementById('exp-amount').value||0);
+  const chargedTo=document.getElementById('exp-charge').value;
+  const farmerId=document.getElementById('exp-farmer').value;
+  const notes=document.getElementById('exp-notes').value.trim();
   const btn=document.getElementById('expense-btn');
-  clearAlert('expense-alert');
-  if(!farmId||!date||!amount){showAlert('expense-alert','⚠️ Farm, date and amount are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Saving...';
+  clrAlert('expense-alert');
+  if(!farmId||!date||!amount){setAlert('expense-alert','⚠️ Farm, date and amount required.');return;}
+  if(chargedTo==='farmer'&&!farmerId){setAlert('expense-alert','⚠️ Select a farmer for debt.');return;}
+  btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'expenses'),{farmId,type,date,quantity:Number(qty||0),pricePerUnit:Number(price||0),amount:Number(amount),description:desc,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
-    toast(`✅ Expense saved!`);closeModal('modal-add-expense');
-    ['exp-qty','exp-price','exp-amount','exp-desc'].forEach(id=>document.getElementById(id).value='');
+    await addDoc(collection(db,'expenses'),{farmId,type,date,qty,unit,pricePerUnit:price,amount,chargedTo,farmerId:farmerId||null,notes,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    toast(`✅ ${type} recorded — ${fmtM(amount)}`);closeM('modal-add-expense');
+    ['exp-qty','exp-price','exp-amount','exp-notes'].forEach(id=>document.getElementById(id).value='');
+    setCharge('landlord');
     await loadAll();
-  }catch(e){showAlert('expense-alert','❌ '+e.message);}
-  btn.disabled=false;btn.textContent='✅ Save Expense';
+    // Notify landlord of new expense
+    if(ME.landlordId){
+      const farm=myFarms.find(f=>f.id===farmId);
+      await createNotif(ME.landlordId,'💸','New Expense',`${ME.name} recorded ${type} — ${fmtM(amount)} on ${farm?.name||'farm'}`);
+    }
+  }catch(e){setAlert('expense-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='✅ Save';
 };
 
-// ── ADD DEBT ──────────────────────────────────────────────
-window.addDebt=async function(){
-  const farmerId=document.getElementById('debt-farmer').value;
-  const amount=document.getElementById('debt-amount').value;
-  const date=document.getElementById('debt-date').value;
-  const reason=document.getElementById('debt-reason').value.trim();
-  const btn=document.getElementById('debt-btn');
-  clearAlert('debt-alert');
-  if(!farmerId||!amount||!date){showAlert('debt-alert','⚠️ Farmer, amount and date are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Saving...';
-  try{
-    await addDoc(collection(db,'debts'),{farmerId,amount:Number(amount),date,reason,status:'pending',managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
-    toast('✅ Debt recorded!');closeModal('modal-add-debt');
-    ['debt-amount','debt-reason'].forEach(id=>document.getElementById(id).value='');
-    await loadAll();
-  }catch(e){showAlert('debt-alert','❌ '+e.message);}
-  btn.disabled=false;btn.textContent='✅ Save Debt';
-};
-window.markDebtPaid=async function(id){
-  try{await updateDoc(doc(db,'debts',id),{status:'paid',paidAt:serverTimestamp()});toast('✅ Marked as paid!');await loadAll();}
-  catch(e){toast('❌ '+e.message,'error');}
-};
-
-// ── ADD HARVEST ───────────────────────────────────────────
-window.loadFarmFarmers=function(){
-  const farmId=document.getElementById('harv-farm').value;
-  const farmers=myFarmers.filter(f=>f.farmId===farmId);
-  document.getElementById('harv-farmer').innerHTML='<option value="">Select farmer...</option>'+farmers.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
-  calcHarvest();
-};
+// ── HARVEST ───────────────────────────────────────────────
 window.calcHarvest=function(){
   const qty=Number(document.getElementById('harv-qty').value||0);
   const price=Number(document.getElementById('harv-price').value||0);
@@ -894,13 +1046,26 @@ window.calcHarvest=function(){
   const total=qty*price;
   const farmerShare=(total*share)/100;
   const landlordShare=total-farmerShare;
-  const farmerDebt=farmerId?myDebts.filter(d=>d.farmerId===farmerId&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0):0;
-  const farmerNet=farmerShare-farmerDebt;
-  document.getElementById('calc-total').textContent=fmtMoney(total);
-  document.getElementById('calc-landlord').textContent=fmtMoney(landlordShare);
-  document.getElementById('calc-farmer').textContent=fmtMoney(farmerShare);
-  document.getElementById('calc-debt').textContent=fmtMoney(farmerDebt);
-  document.getElementById('calc-net').textContent=fmtMoney(farmerNet);
+  const debt=farmerId?myExpenses.filter(e=>e.farmerId===farmerId&&e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0):0;
+  const paid=farmerId?myHarvests.filter(h=>h.farmerId===farmerId).reduce((s,h)=>s+Number(h.debtDeducted||0),0):0;
+  const netDebt=Math.max(0,debt-paid);
+  // Show debt option if farmer has debt
+  const deductOpt=document.getElementById('debt-deduct-option');
+  if(netDebt>0&&farmerId){
+    deductOpt.style.display='block';
+    document.getElementById('farmer-debt-amount').textContent=fmtM(netDebt)+' owed';
+  }else{
+    deductOpt.style.display='none';
+    document.getElementById('deduct-debt').checked=false;
+  }
+  const willDeduct=document.getElementById('deduct-debt').checked;
+  const deducted=willDeduct?Math.min(farmerShare,netDebt):0;
+  const farmerNet=farmerShare-deducted;
+  document.getElementById('calc-total').textContent=fmtM(total);
+  document.getElementById('calc-landlord').textContent=fmtM(landlordShare);
+  document.getElementById('calc-farmer').textContent=fmtM(farmerShare);
+  document.getElementById('calc-deducted').textContent=fmtM(deducted);
+  document.getElementById('calc-net').textContent=fmtM(farmerNet);
   document.getElementById('calc-net').style.color=farmerNet>=0?'var(--primary)':'var(--danger)';
   document.getElementById('harv-calc').style.display='block';
 };
@@ -908,72 +1073,127 @@ window.addHarvest=async function(){
   const farmId=document.getElementById('harv-farm').value;
   const farmerId=document.getElementById('harv-farmer').value;
   const crop=document.getElementById('harv-crop').value.trim();
+  const season=document.getElementById('harv-season').value;
   const date=document.getElementById('harv-date').value;
   const qty=Number(document.getElementById('harv-qty').value||0);
   const unit=document.getElementById('harv-unit').value;
   const price=Number(document.getElementById('harv-price').value||0);
   const share=Number(document.getElementById('harv-share').value||50);
+  const willDeduct=document.getElementById('deduct-debt').checked;
   const btn=document.getElementById('harvest-btn');
-  clearAlert('harvest-alert');
-  if(!farmId||!farmerId||!crop||!date){showAlert('harvest-alert','⚠️ All fields are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Saving...';
+  clrAlert('harvest-alert');
+  if(!farmId||!farmerId||!crop||!date||!qty||!price){setAlert('harvest-alert','⚠️ All fields required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
   try{
-    const totalIncome=qty*price;
-    const farmerShare=(totalIncome*share)/100;
-    const landlordShare=totalIncome-farmerShare;
-    const farmerDebt=myDebts.filter(d=>d.farmerId===farmerId&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-    const debtDeducted=Math.min(farmerShare,farmerDebt);
-    const farmerNet=farmerShare-debtDeducted;
-    await addDoc(collection(db,'harvests'),{farmId,farmerId,crop,date,qty,unit,pricePerUnit:price,totalIncome,farmerSharePct:share,farmerShare,landlordShare,farmerDebt,debtDeducted,farmerNet,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
-    if(debtDeducted>0){
-      const pendingDebts=myDebts.filter(d=>d.farmerId===farmerId&&d.status!=='paid').sort((a,b)=>new Date(a.date)-new Date(b.date));
-      let remaining=debtDeducted;
-      for(const d of pendingDebts){
-        if(remaining<=0)break;
-        if(Number(d.amount||0)<=remaining){await updateDoc(doc(db,'debts',d.id),{status:'paid',paidAt:serverTimestamp()});remaining-=Number(d.amount||0);}
-        else{await updateDoc(doc(db,'debts',d.id),{amount:Number(d.amount||0)-remaining});remaining=0;}
-      }
-    }
-    toast(`✅ Harvest recorded! Farmer net: ${fmtMoney(farmerNet)}`);closeModal('modal-add-harvest');
+    const total=qty*price;
+    const farmerShare=(total*share)/100;
+    const landlordShare=total-farmerShare;
+    const debt=myExpenses.filter(e=>e.farmerId===farmerId&&e.chargedTo==='farmer').reduce((s,e)=>s+Number(e.amount||0),0);
+    const alreadyPaid=myHarvests.filter(h=>h.farmerId===farmerId).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
+    const netDebt=Math.max(0,debt-alreadyPaid);
+    const deducted=willDeduct?Math.min(farmerShare,netDebt):0;
+    const farmerNet=farmerShare-deducted;
+    await addDoc(collection(db,'harvests'),{farmId,farmerId,crop,season,date,qty,unit,pricePerUnit:price,totalIncome:total,farmerSharePct:share,farmerShare,landlordShare,debtDeducted:deducted,farmerNet,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    toast(`✅ Harvest! Farmer net: ${fmtM(farmerNet)}`);closeM('modal-add-harvest');
     ['harv-crop','harv-qty','harv-price'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('harv-share').value='50';
+    document.getElementById('deduct-debt').checked=false;
     document.getElementById('harv-calc').style.display='none';
+    document.getElementById('debt-deduct-option').style.display='none';
     await loadAll();
-  }catch(e){showAlert('harvest-alert','❌ '+e.message);}
+    if(ME.landlordId){
+      const farm=myFarms.find(f=>f.id===farmId);
+      await createNotif(ME.landlordId,'🌾','Harvest Recorded',`${crop} harvest on ${farm?.name||'farm'} — Total: ${fmtM(total)}, Your share: ${fmtM(landlordShare)}`);
+    }
+  }catch(e){setAlert('harvest-alert','❌ '+e.message);}
   btn.disabled=false;btn.textContent='✅ Record Harvest';
 };
 
-// ── ADD INVENTORY ─────────────────────────────────────────
+// ── INVENTORY ─────────────────────────────────────────────
 window.addInventory=async function(){
   const name=document.getElementById('inv-name').value.trim();
   const category=document.getElementById('inv-category').value;
   const unit=document.getElementById('inv-unit').value;
-  const qty=document.getElementById('inv-qty').value;
-  const min=document.getElementById('inv-min').value;
-  const price=document.getElementById('inv-price').value;
+  const qty=Number(document.getElementById('inv-qty').value||0);
+  const min=Number(document.getElementById('inv-min').value||0);
+  const price=Number(document.getElementById('inv-price').value||0);
   const btn=document.getElementById('inv-btn');
-  clearAlert('inv-alert');
-  if(!name||!qty){showAlert('inv-alert','⚠️ Name and quantity are required.');return;}
-  btn.disabled=true;btn.textContent='⏳ Adding...';
+  clrAlert('inv-alert');
+  if(!name||!qty){setAlert('inv-alert','⚠️ Name and quantity required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
   try{
-    await addDoc(collection(db,'inventory'),{name,category,unit,quantity:Number(qty),minStock:Number(min||0),pricePerUnit:Number(price||0),managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
-    toast(`✅ ${name} added!`);closeModal('modal-add-inventory');
+    // Check if same item exists (same name + unit + landlordId) — merge if yes
+    const existing=myInventory.find(i=>i.name.toLowerCase()===name.toLowerCase()&&i.unit===unit);
+    if(existing){
+      await updateDoc(doc(db,'inventory',existing.id),{quantity:Number(existing.quantity||0)+qty,minStock:min||existing.minStock,pricePerUnit:price||existing.pricePerUnit,updatedAt:serverTimestamp()});
+      toast(`✅ Added ${qty} ${unit} to existing ${name} — Total: ${Number(existing.quantity||0)+qty} ${unit}`);
+    }else{
+      await addDoc(collection(db,'inventory'),{name,category,unit,quantity:qty,minStock:min,pricePerUnit:price,landlordId:ME.landlordId||'',managerId:ME.uid,createdAt:serverTimestamp()});
+      toast(`✅ ${name} added to inventory!`);
+    }
+    closeM('modal-add-inventory');
     ['inv-name','inv-qty','inv-min','inv-price'].forEach(id=>document.getElementById(id).value='');
     await loadAll();
-  }catch(e){showAlert('inv-alert','❌ '+e.message);}
-  btn.disabled=false;btn.textContent='✅ Add Item';
+    // Check low stock after adding
+    const updated=myInventory.find(i=>i.name.toLowerCase()===name.toLowerCase()&&i.unit===unit);
+    if(updated&&Number(updated.quantity||0)<=Number(updated.minStock||0)&&ME.landlordId){
+      await createNotif(ME.landlordId,'⚠️','Low Stock Alert',`${name} is running low: ${updated.quantity} ${unit} remaining`);
+    }
+  }catch(e){setAlert('inv-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='✅ Add to Stock';
 };
-window.adjustInventory=async function(id,name,current,unit){
-  const newQty=prompt(`Adjust stock for ${name}\nCurrent: ${current} ${unit}\nEnter new quantity:`);
-  if(newQty===null||newQty==='')return;
-  try{await updateDoc(doc(db,'inventory',id),{quantity:Number(newQty),updatedAt:serverTimestamp()});toast(`✅ ${name} updated!`);await loadAll();}
-  catch(e){toast('❌ '+e.message,'error');}
+
+window.openIssueModal=function(id,name,qty,unit,price){
+  document.getElementById('issue-inv-id').value=id;
+  document.getElementById('issue-item-info').innerHTML=`📦 <strong>${name}</strong> — In stock: <strong style="color:var(--primary)">${qty} ${unit}</strong> · ₨${price.toLocaleString()}/unit`;
+  document.getElementById('issue-qty').value='';
+  document.getElementById('issue-value').value='';
+  clrAlert('issue-alert');
+  setIssueCharge('landlord');
+  // pre-fill value based on price
+  document.getElementById('issue-qty').addEventListener('input',function(){
+    if(price)document.getElementById('issue-value').value=Number(this.value||0)*price;
+  },{once:true});
+  openM('modal-issue-inventory');
+};
+
+window.issueInventory=async function(){
+  const invId=document.getElementById('issue-inv-id').value;
+  const qty=Number(document.getElementById('issue-qty').value||0);
+  const farmId=document.getElementById('issue-farm').value;
+  const chargedTo=document.getElementById('issue-charge').value;
+  const farmerId=document.getElementById('issue-farmer').value;
+  const value=Number(document.getElementById('issue-value').value||0);
+  const btn=document.getElementById('issue-btn');
+  clrAlert('issue-alert');
+  if(!qty){setAlert('issue-alert','⚠️ Quantity required.');return;}
+  if(!farmId){setAlert('issue-alert','⚠️ Select a farm.');return;}
+  if(chargedTo==='farmer'&&!farmerId){setAlert('issue-alert','⚠️ Select a farmer.');return;}
+  const item=myInventory.find(i=>i.id===invId);
+  if(!item){setAlert('issue-alert','❌ Item not found.');return;}
+  if(qty>Number(item.quantity||0)){setAlert('issue-alert',`⚠️ Only ${item.quantity} ${item.unit} in stock.`);return;}
+  btn.disabled=true;btn.textContent='⏳';
+  try{
+    // Deduct from inventory
+    const newQty=Number(item.quantity||0)-qty;
+    await updateDoc(doc(db,'inventory',invId),{quantity:newQty,updatedAt:serverTimestamp()});
+    // Create expense record
+    if(value>0){
+      await addDoc(collection(db,'expenses'),{farmId,type:item.category||'other',date:new Date().toISOString().split('T')[0],qty,unit:item.unit,pricePerUnit:item.pricePerUnit||0,amount:value,chargedTo,farmerId:farmerId||null,notes:`Issued from inventory: ${item.name}`,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    }
+    toast(`✅ ${qty} ${item.unit} of ${item.name} issued!`);closeM('modal-issue-inventory');
+    await loadAll();
+    // Low stock notification
+    if(newQty<=Number(item.minStock||0)&&ME.landlordId){
+      await createNotif(ME.landlordId,'⚠️','Low Stock Alert',`${item.name} is now low: ${newQty} ${item.unit} remaining`);
+    }
+  }catch(e){setAlert('issue-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='📤 Issue';
 };
 
 // ── DELETE ────────────────────────────────────────────────
-window.deleteFarm=async function(id,name){if(!confirm(`Delete farm "${name}"? This only removes the farm record.`))return;try{await deleteDoc(doc(db,'farms',id));toast('🗑️ Farm deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
-window.deleteFarmer=async function(id,name){if(!confirm(`Remove farmer "${name}"?`))return;try{await deleteDoc(doc(db,'farmers',id));toast('🗑️ Farmer removed','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
+window.deleteFarm=async function(id,name){if(!confirm(`Delete farm "${name}"?`))return;try{await deleteDoc(doc(db,'farms',id));toast('🗑️ Deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
 window.deleteExpense=async function(id){if(!confirm('Delete this expense?'))return;try{await deleteDoc(doc(db,'expenses',id));toast('🗑️ Deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
-window.deleteDebt=async function(id){if(!confirm('Delete this debt record?'))return;try{await deleteDoc(doc(db,'debts',id));toast('🗑️ Deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
 window.deleteHarvest=async function(id){if(!confirm('Delete this harvest?'))return;try{await deleteDoc(doc(db,'harvests',id));toast('🗑️ Deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
 window.deleteInventory=async function(id){if(!confirm('Delete this item?'))return;try{await deleteDoc(doc(db,'inventory',id));toast('🗑️ Deleted','warning');await loadAll();}catch(e){toast('❌ '+e.message,'error');}};
 
@@ -982,25 +1202,22 @@ window.printFarmReport=function(farmId){
   const farm=myFarms.find(f=>f.id===farmId);if(!farm)return;
   const exp=myExpenses.filter(e=>e.farmId===farmId);
   const harv=myHarvests.filter(h=>h.farmId===farmId);
-  const totalExp=exp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalExp=exp.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=harv.reduce((s,h)=>s+Number(h.totalIncome||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name} Report</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:600px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.income{color:#16a34a;font-weight:700}.expense{color:#dc2626;font-weight:700}.summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}.lbl{font-size:10px;color:#666;font-weight:700}.val{font-size:16px;font-weight:800;margin-top:4px}</style></head><body>
-  <h1>📋 ${farm.name}</h1><p>${farm.location||''} · ${farm.area||'?'} acres · ${farm.crop||'No crop'} · Generated: ${new Date().toLocaleDateString()}</p>
-  <div class="summary"><div class="box"><div class="lbl">EXPENSES</div><div class="val expense">₨${totalExp.toLocaleString()}</div></div><div class="box"><div class="lbl">INCOME</div><div class="val income">₨${totalInc.toLocaleString()}</div></div><div class="box"><div class="lbl">PROFIT</div><div class="val" style="color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
-  <h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.description?' ('+e.description+')':''}</span><span class="expense">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">No expenses</p>'}
-  <h2>Harvests</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="income">₨${Number(h.totalIncome||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">No harvests</p>'}
-  
-
-</body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>${farm.name}</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:650px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
+  <h1>${farm.name} — Farm Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
+  <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
+  <h2>Expenses</h2>${exp.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.notes?' ('+e.notes+')':''}</span><span class="${e.chargedTo==='farmer'?'debt':'exp'}">${e.chargedTo==='farmer'?'Farmer debt: ':''} ₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}
+  <h2>Harvests</h2>${harv.map(h=>`<div class="row"><span>${h.date} — ${h.crop} (${h.qty} ${h.unit})</span><span class="inc">₨${Number(h.totalIncome||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">None</p>'}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
 window.printHarvestSlip=function(harvId){
   const h=myHarvests.find(x=>x.id===harvId);if(!h)return;
-  const farm=myFarms.find(f=>f.id===h.farmId);
-  const farmer=myFarmers.find(f=>f.id===h.farmerId);
+  const farm=myFarms.find(f=>f.id===h.farmId);const farmer=myFarmers.find(f=>f.id===h.farmerId);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Harvest Slip</title><style>body{font-family:Arial,sans-serif;padding:24px;max-width:380px;margin:0 auto;border:2px solid #16a34a;border-radius:12px;color:#111}h1{color:#16a34a;text-align:center;margin-bottom:4px}h2{text-align:center;color:#166534;margin-bottom:16px;font-size:14px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.net{font-size:22px;font-weight:800;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px;margin-top:12px;color:#16a34a}</style></head><body>
+  w.document.write(`<!DOCTYPE html><html><head><title>Harvest Slip</title><style>body{font-family:Arial,sans-serif;padding:24px;max-width:380px;margin:0 auto;border:2px solid #16a34a;border-radius:12px;color:#111}h1{color:#16a34a;text-align:center}h2{text-align:center;color:#166534;margin-bottom:16px;font-size:14px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.net{font-size:22px;font-weight:800;text-align:center;padding:14px;background:#f0fdf4;border-radius:8px;margin-top:12px;color:#16a34a}</style></head><body>
   <h1>🌾 AgriFlow</h1><h2>Harvest Payment Slip</h2>
   <div class="row"><span>Farm</span><strong>${farm?.name||'—'}</strong></div>
   <div class="row"><span>Farmer</span><strong>${farmer?.name||'—'}</strong></div>
@@ -1008,354 +1225,54 @@ window.printHarvestSlip=function(harvId){
   <div class="row"><span>Date</span><strong>${h.date}</strong></div>
   <div class="row"><span>Quantity</span><strong>${h.qty} ${h.unit}</strong></div>
   <div class="row"><span>Total Income</span><strong>₨${Number(h.totalIncome||0).toLocaleString()}</strong></div>
-  <div class="row"><span>Farmer Share (${h.farmerSharePct}%)</span><strong>₨${Number(h.farmerShare||0).toLocaleString()}</strong></div>
-  <div class="row"><span>Debt Deducted</span><strong style="color:#dc2626">-₨${Number(h.debtDeducted||0).toLocaleString()}</strong></div>
+  <div class="row"><span>Farmer Share (${h.farmerSharePct||50}%)</span><span class="inc">₨${Number(h.farmerShare||0).toLocaleString()}</span></div>
+  <div class="row"><span>Debt Deducted</span><span class="exp">-₨${Number(h.debtDeducted||0).toLocaleString()}</span></div>
   <div class="net">Net Payment: ₨${Number(h.farmerNet||0).toLocaleString()}</div>
   <p style="text-align:center;font-size:11px;color:#666;margin-top:12px">AgriFlow · ${new Date().toLocaleDateString()}</p>
-  
-
-</body></html>`);
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
 window.printFarmerLedger=function(farmerId){
   const f=myFarmers.find(x=>x.id===farmerId);if(!f)return;
-  const debts=myDebts.filter(d=>d.farmerId===farmerId);
-  const totalDebt=debts.reduce((s,d)=>s+Number(d.amount||0),0);
-  const paidDebt=debts.filter(d=>d.status==='paid').reduce((s,d)=>s+Number(d.amount||0),0);
+  const farm=myFarms.find(fm=>fm.id===f.farmId);
+  const debts=myExpenses.filter(e=>e.farmerId===farmerId&&e.chargedTo==='farmer');
+  const total=debts.reduce((s,e)=>s+Number(e.amount||0),0);
+  const paid=myHarvests.filter(h=>h.farmerId===farmerId).reduce((s,h)=>s+Number(h.debtDeducted||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:500px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.paid{color:#16a34a}.pending{color:#dc2626}</style></head><body>
-  <h1>👨‍🌾 ${f.name} — Ledger</h1><p>Total Debt: ₨${totalDebt.toLocaleString()} · Paid: ₨${paidDebt.toLocaleString()}</p>
-  <h2>All Debts</h2>${debts.map(d=>`<div class="row"><span>${d.date} — ${d.reason||'Debt'}</span><span class="${d.status==='paid'?'paid':'pending'}">₨${Number(d.amount||0).toLocaleString()} (${d.status})</span></div>`).join('')||'<p>No debts</p>'}
-  
-
-</body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:500px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}.exp{color:#dc2626;font-weight:700}.inc{color:#16a34a;font-weight:700}</style></head><body>
+  <h1>👨‍🌾 ${f.name} — Ledger</h1><p>${farm?.name||'—'} · Generated: ${new Date().toLocaleDateString()}</p>
+  <div class="row"><span>Total Debt</span><span class="exp">₨${total.toLocaleString()}</span></div>
+  <div class="row"><span>Paid via Harvest</span><span class="inc">₨${paid.toLocaleString()}</span></div>
+  <div class="row"><span><strong>Net Debt</strong></span><span class="${total-paid>0?'exp':'inc'}"><strong>₨${Math.max(0,total-paid).toLocaleString()}</strong></span></div>
+  <h2 style="margin-top:16px;font-size:14px;color:#166534">Debt History</h2>
+  ${debts.map(e=>`<div class="row"><span>${e.date} — ${e.type}${e.notes?' ('+e.notes+')':''}</span><span class="exp">₨${Number(e.amount||0).toLocaleString()}</span></div>`).join('')||'<p style="color:#666">No debts</p>'}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
-
-// ── Reports ───────────────────────────────────────────────
-function renderReports(){
-  const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
-  const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
-  const totalDebt=myDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-  const profit=totalInc-totalExp;
-
-  document.getElementById('report-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Total Expenses</div><div class="stat-value" style="font-size:18px;color:var(--danger)">${fmtMoney(totalExp)}</div></div>
-    <div class="stat-card"><div class="stat-icon">🌾</div><div class="stat-label">Total Income</div><div class="stat-value" style="font-size:18px;color:var(--primary)">${fmtMoney(totalInc)}</div></div>
-    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Net Profit</div><div class="stat-value" style="font-size:18px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</div></div>
-    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Farmer Debts</div><div class="stat-value" style="font-size:18px;color:var(--warning)">${fmtMoney(totalDebt)}</div></div>`;
-
-  // Per farm
-  document.getElementById('report-farms').innerHTML=myFarms.length===0
-    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">No farms yet</div></div>`
-    :myFarms.map(f=>{
-      const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
-      const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
-      const lInc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.landlordShare||0),0);
-      const profit=inc-exp;
-      const farmers=myFarmers.filter(fr=>fr.farmId===f.id).length;
-      const harvests=myHarvests.filter(h=>h.farmId===f.id).length;
-      return `<div style="padding:14px 16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div>
-            <div style="font-weight:700;font-size:14px">${f.name}</div>
-            <div style="font-size:11px;color:var(--muted)">${f.crop||'No crop'} · ${f.area||'?'} acres · ${farmers} farmers · ${harvests} harvests</div>
-          </div>
-          <span style="font-weight:800;font-size:15px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-            <div style="font-size:9px;color:var(--muted);font-weight:700">EXPENSES</div>
-            <div style="font-weight:700;color:var(--danger);font-size:12px">${fmtMoney(exp)}</div>
-          </div>
-          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-            <div style="font-size:9px;color:var(--muted);font-weight:700">TOTAL INC</div>
-            <div style="font-weight:700;color:var(--primary);font-size:12px">${fmtMoney(inc)}</div>
-          </div>
-          <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:8px;text-align:center">
-            <div style="font-size:9px;color:var(--muted);font-weight:700">LANDLORD</div>
-            <div style="font-weight:700;color:var(--primary);font-size:12px">${fmtMoney(lInc)}</div>
-          </div>
-        </div>
-        <div style="margin-top:8px;display:flex;gap:6px">
-          <button class="btn btn-outline btn-sm" onclick="printFarmReport('${f.id}')">🖨️ Farm Report</button>
-        </div>
-      </div>`;}).join('');
-
-  // Farmer debts
-  document.getElementById('report-debts').innerHTML=myFarmers.length===0
-    ?`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers yet</div></div>`
-    :myFarmers.map(f=>{
-      const farm=myFarms.find(fm=>fm.id===f.farmId);
-      const allDebts=myDebts.filter(d=>d.farmerId===f.id);
-      const activeDebt=allDebts.filter(d=>d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-      const paidDebt=allDebts.filter(d=>d.status==='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
-          <div style="width:38px;height:38px;border-radius:10px;background:var(--primary-dim);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--primary);flex-shrink:0">${f.name.charAt(0).toUpperCase()}</div>
-          <div style="min-width:0">
-            <div style="font-weight:700;font-size:13px">${f.name}</div>
-            <div style="font-size:11px;color:var(--muted)">${farm?.name||'—'} · ${f.sharePercentage||50}% share</div>
-            ${paidDebt>0?`<div style="font-size:11px;color:var(--primary)">Paid: ${fmtMoney(paidDebt)}</div>`:''}
-          </div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:10px">
-          ${activeDebt>0
-            ?`<div style="font-weight:800;color:var(--danger);font-size:14px">${fmtMoney(activeDebt)}</div><div style="font-size:10px;color:var(--muted)">active debt</div>`
-            :`<span class="badge badge-green">No debt</span>`}
-        </div>
-      </div>`;}).join('');
-}
-
-// ── Print Full Report ──────────────────────────────────────
 window.printFullReport=function(){
-  const totalExp=myExpenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  const totalExp=myExpenses.filter(e=>e.chargedTo==='landlord').reduce((s,e)=>s+Number(e.amount||0),0);
   const totalInc=myHarvests.reduce((s,h)=>s+Number(h.totalIncome||0),0);
   const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>AgriFlow Report</title>
-  <style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto}
-  h1{color:#16a34a}h2{color:#166534;margin-top:20px;font-size:15px;border-bottom:2px solid #16a34a;padding-bottom:4px}
-  .row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:13px}
-  .inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}
-  .sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:16px 0}
-  .box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}
-  .farm-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}
-  </style></head><body>
-  <h1>📋 AgriFlow — Manager Report</h1>
-  <p>${ME.name} · Generated: ${new Date().toLocaleDateString('en-PK',{day:'numeric',month:'long',year:'numeric'})}</p>
-  <div class="sum">
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">TOTAL EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">TOTAL INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">NET PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div>
-  </div>
-  <h2>Per Farm Summary</h2>
-  ${myFarms.map(f=>{
-    const exp=myExpenses.filter(e=>e.farmId===f.id).reduce((s,e)=>s+Number(e.amount||0),0);
-    const inc=myHarvests.filter(h=>h.farmId===f.id).reduce((s,h)=>s+Number(h.totalIncome||0),0);
-    const farmers=myFarmers.filter(fr=>fr.farmId===f.id);
-    return `<div class="farm-box">
-      <div style="font-weight:700;font-size:15px;margin-bottom:6px">${f.name} — ${f.crop||'No crop'} · ${f.area||'?'} acres</div>
-      <div class="row"><span>Expenses</span><span class="exp">₨${exp.toLocaleString()}</span></div>
-      <div class="row"><span>Income</span><span class="inc">₨${inc.toLocaleString()}</span></div>
-      <div class="row"><span><strong>Profit</strong></span><span style="font-weight:800;color:${inc-exp>=0?'#16a34a':'#dc2626'}">₨${(inc-exp).toLocaleString()}</span></div>
-      <div style="margin-top:8px;font-size:12px;color:#666">Farmers: ${farmers.map(fr=>fr.name).join(', ')||'None'}</div>
-    </div>`;}).join('')}
-  <h2>Farmer Debt Summary</h2>
-  ${myFarmers.map(f=>{
-    const debt=myDebts.filter(d=>d.farmerId===f.id&&d.status!=='paid').reduce((s,d)=>s+Number(d.amount||0),0);
-    const farm=myFarms.find(fm=>fm.id===f.farmId);
-    return `<div class="row"><span>${f.name} (${farm?.name||'—'})</span><span class="${debt>0?'exp':'inc'}">${debt>0?'₨'+debt.toLocaleString()+' owed':'No debt'}</span></div>`;
-  }).join('')}
-  
-
-</body></html>`);
+  w.document.write(`<!DOCTYPE html><html><head><title>Full Report</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px;border-bottom:2px solid #16a34a;padding-bottom:4px}.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}.farm-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:14px;margin-bottom:12px}</style></head><body>
+  <h1>📋 AgriFlow — Full Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
+  <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:18px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:18px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:18px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
+  ${myFarms.map(f=>{const e=myExpenses.filter(x=>x.farmId===f.id&&x.chargedTo==='landlord').reduce((s,x)=>s+Number(x.amount||0),0);const i=myHarvests.filter(x=>x.farmId===f.id).reduce((s,x)=>s+Number(x.totalIncome||0),0);return `<div class="farm-box"><div style="font-weight:700;font-size:15px;margin-bottom:6px">${f.name}</div><div class="row"><span>Expenses</span><span class="exp">₨${e.toLocaleString()}</span></div><div class="row"><span>Income</span><span class="inc">₨${i.toLocaleString()}</span></div><div class="row"><span><strong>Profit</strong></span><span style="font-weight:800;color:${i-e>=0?'#16a34a':'#dc2626'}">₨${(i-e).toLocaleString()}</span></div></div>`;}).join('')}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
-
-// ── Bookkeeping Ledger ────────────────────────────────────
-window.buildLedger = function() {
-  const farmFilter = document.getElementById('bk-farm')?.value || '';
-  const typeFilter = document.getElementById('bk-type')?.value || '';
-
-  // Build unified transaction list
-  let rows = [];
-
-  // Expenses
-  myExpenses.forEach(e => {
-    const farm = myFarms.find(f => f.id === e.farmId);
-    rows.push({
-      date: e.date,
-      dateObj: new Date(e.date),
-      type: 'expense',
-      icon: CAT_ICON[e.type] || '📦',
-      title: (e.type||'').charAt(0).toUpperCase()+(e.type||'').slice(1),
-      sub: (e.description || ''),
-      farm: farm?.name || '—',
-      farmId: e.farmId,
-      farmer: '—',
-      amount: -Number(e.amount || 0),
-      badge: 'badge-red',
-      badgeText: 'Expense',
-    });
-  });
-
-  // Debts
-  myDebts.forEach(d => {
-    const farmer = myFarmers.find(f => f.id === d.farmerId);
-    const farm = myFarms.find(f => f.id === farmer?.farmId);
-    rows.push({
-      date: d.date,
-      dateObj: new Date(d.date),
-      type: 'debt',
-      icon: '💰',
-      title: 'Advance / Debt',
-      sub: d.reason || '',
-      farm: farm?.name || '—',
-      farmId: farm?.id || '',
-      farmer: farmer?.name || '—',
-      amount: -Number(d.amount || 0),
-      badge: d.status === 'paid' ? 'badge-green' : 'badge-yellow',
-      badgeText: d.status === 'paid' ? '✅ Paid' : '⏳ Pending',
-    });
-  });
-
-  // Harvests
-  myHarvests.forEach(h => {
-    const farm = myFarms.find(f => f.id === h.farmId);
-    const farmer = myFarmers.find(f => f.id === h.farmerId);
-    rows.push({
-      date: h.date,
-      dateObj: new Date(h.date),
-      type: 'harvest',
-      icon: '🌾',
-      title: h.crop + ' Harvest',
-      sub: `${h.qty} ${h.unit} @ ₨${Number(h.pricePerUnit||0).toLocaleString()}`,
-      farm: farm?.name || '—',
-      farmId: h.farmId,
-      farmer: farmer?.name || '—',
-      amount: Number(h.totalIncome || 0),
-      badge: 'badge-green',
-      badgeText: 'Harvest',
-    });
-  });
-
-  // Apply filters
-  if (farmFilter) rows = rows.filter(r => r.farmId === farmFilter);
-  if (typeFilter) rows = rows.filter(r => r.type === typeFilter);
-
-  // Sort newest first
-  rows.sort((a, b) => b.dateObj - a.dateObj);
-
-  // Summary
-  const totalInc = rows.filter(r => r.amount > 0).reduce((s, r) => s + r.amount, 0);
-  const totalExp = rows.filter(r => r.type === 'expense').reduce((s, r) => s + Math.abs(r.amount), 0);
-  const totalDebt = rows.filter(r => r.type === 'debt').reduce((s, r) => s + Math.abs(r.amount), 0);
-  const profit = totalInc - totalExp;
-
-  document.getElementById('bk-sub').textContent = `${rows.length} transactions`;
-  document.getElementById('bk-summary').innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Income</div>
-      <div style="font-weight:800;color:var(--primary);font-size:14px;margin-top:4px">${fmtMoney(totalInc)}</div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Expenses</div>
-      <div style="font-weight:800;color:var(--danger);font-size:14px;margin-top:4px">${fmtMoney(totalExp)}</div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Debts</div>
-      <div style="font-weight:800;color:var(--warning);font-size:14px;margin-top:4px">${fmtMoney(totalDebt)}</div>
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center">
-      <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">Profit</div>
-      <div style="font-weight:800;font-size:14px;margin-top:4px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtMoney(profit)}</div>
-    </div>`;
-
-  // Timeline
-  if (rows.length === 0) {
-    document.getElementById('bk-timeline').innerHTML =
-      `<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-title">No transactions yet</div><div class="empty-sub">Add expenses, debts or record harvests</div></div>`;
-    return;
-  }
-
-  // Group by date
-  const grouped = {};
-  rows.forEach(r => {
-    const key = r.date || 'Unknown';
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r);
-  });
-
-  document.getElementById('bk-timeline').innerHTML = Object.keys(grouped)
-    .sort((a, b) => new Date(b) - new Date(a))
-    .map(date => `
-      <div style="margin-bottom:4px">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:10px 4px 6px">${formatGroupDate(date)}</div>
-        <div class="card">
-          ${grouped[date].map(r => `
-            <div style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)">
-              <div style="width:40px;height:40px;border-radius:10px;background:${r.type==='harvest'?'var(--primary-dim)':r.type==='debt'?'var(--warning-dim)':'var(--danger-dim)'};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${r.icon}</div>
-              <div style="min-width:0;flex:1">
-                <div style="font-weight:700;font-size:13px">${r.title}</div>
-                <div style="font-size:11px;color:var(--muted)">${r.farm}${r.farmer!=='—'?' · '+r.farmer:''}${r.sub?' · '+r.sub:''}</div>
-                <span class="badge ${r.badge}" style="margin-top:4px">${r.badgeText}</span>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-weight:800;font-size:14px;color:${r.amount>=0?'var(--primary)':'var(--danger)'}">${r.amount>=0?'+':''}${fmtMoney(Math.abs(r.amount))}</div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`).join('');
-};
-
-function formatGroupDate(dateStr) {
-  if (!dateStr || dateStr === 'Unknown') return 'Unknown Date';
-  const d = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
-  if (d.toDateString() === today.toDateString()) return 'Today';
-  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
-  return d.toLocaleDateString('en-PK', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-}
-
-window.clearBkFilters = function() {
-  document.getElementById('bk-farm').value = '';
-  document.getElementById('bk-type').value = '';
-  buildLedger();
-};
-
-// ── Print Ledger ───────────────────────────────────────────
-window.printLedger = function() {
-  const farmFilter = document.getElementById('bk-farm')?.value || '';
-  const typeFilter = document.getElementById('bk-type')?.value || '';
-  const farmName = farmFilter ? myFarms.find(f=>f.id===farmFilter)?.name : 'All Farms';
-
-  let rows = [];
-  myExpenses.forEach(e => {
-    const farm = myFarms.find(f=>f.id===e.farmId);
-    if(farmFilter && e.farmId !== farmFilter) return;
-    if(typeFilter && typeFilter !== 'expense') return;
-    rows.push({date:e.date,dateObj:new Date(e.date),desc:`${e.type}${e.description?' — '+e.description:''}`,farm:farm?.name||'—',amount:-Number(e.amount||0),type:'expense'});
-  });
-  myDebts.forEach(d => {
-    const farmer = myFarmers.find(f=>f.id===d.farmerId);
-    const farm = myFarms.find(f=>f.id===farmer?.farmId);
-    if(farmFilter && farm?.id !== farmFilter) return;
-    if(typeFilter && typeFilter !== 'debt') return;
-    rows.push({date:d.date,dateObj:new Date(d.date),desc:`Advance — ${farmer?.name||'—'}${d.reason?' ('+d.reason+')':''}`,farm:farm?.name||'—',amount:-Number(d.amount||0),type:'debt'});
-  });
-  myHarvests.forEach(h => {
-    const farm = myFarms.find(f=>f.id===h.farmId);
-    if(farmFilter && h.farmId !== farmFilter) return;
-    if(typeFilter && typeFilter !== 'harvest') return;
-    rows.push({date:h.date,dateObj:new Date(h.date),desc:`${h.crop} Harvest (${h.qty} ${h.unit})`,farm:farm?.name||'—',amount:Number(h.totalIncome||0),type:'harvest'});
-  });
-  rows.sort((a,b) => b.dateObj - a.dateObj);
-
-  const totalInc = rows.filter(r=>r.amount>0).reduce((s,r)=>s+r.amount,0);
-  const totalExp = rows.filter(r=>r.type==='expense').reduce((s,r)=>s+Math.abs(r.amount),0);
-  const profit = totalInc - totalExp;
-
-  const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Ledger</title>
-  <style>body{font-family:Arial,sans-serif;padding:30px;color:#111;max-width:700px;margin:0 auto}
-  h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px}
-  .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}
-  .inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}
-  .sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
-  .box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}
-  @media print{button{display:none}}</style></head><body>
-  <h1>📒 AgriFlow — Ledger</h1>
-  <p>${ME.name} · ${farmName} · ${new Date().toLocaleDateString('en-PK',{day:'numeric',month:'long',year:'numeric'})}</p>
-  <div class="sum">
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div>
-    <div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${profit>=0?'#16a34a':'#dc2626'}">₨${profit.toLocaleString()}</div></div>
-  </div>
-  ${rows.map(r=>`<div class="row"><span>${r.date} &nbsp; ${r.desc} &nbsp; <em style="color:#888">${r.farm}</em></span><span class="${r.type==='harvest'?'inc':r.type==='debt'?'debt':'exp'}">${r.amount>=0?'+':''}₨${Math.abs(r.amount).toLocaleString()}</span></div>`).join('')}
-  
-
-</body></html>`);
+window.printLedger=function(){
+  const rows=[
+    ...myExpenses.map(e=>({date:e.date,desc:e.type+(e.notes?' — '+e.notes:''),farm:myFarms.find(f=>f.id===e.farmId)?.name||'—',amount:-Number(e.amount||0),cls:e.chargedTo==='farmer'?'debt':'exp',label:e.chargedTo==='farmer'?'Farmer Debt':'Landlord'})),
+    ...myHarvests.map(h=>({date:h.date,desc:h.crop+' Harvest',farm:myFarms.find(f=>f.id===h.farmId)?.name||'—',amount:Number(h.totalIncome||0),cls:'inc',label:'Income'}))
+  ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const inc=rows.filter(r=>r.amount>0).reduce((s,r)=>s+r.amount,0);
+  const exp=rows.filter(r=>r.cls==='exp').reduce((s,r)=>s+Math.abs(r.amount),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Ledger</title><style>body{font-family:Arial,sans-serif;padding:30px;max-width:700px;margin:0 auto;color:#111}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.debt{color:#d97706;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:12px;border-radius:8px;text-align:center}</style></head><body>
+  <h1>📒 Ledger</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
+  <div class="sum"><div class="box"><div style="font-size:10px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${inc.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${exp.toLocaleString()}</div></div><div class="box"><div style="font-size:10px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${inc-exp>=0?'#16a34a':'#dc2626'}">₨${(inc-exp).toLocaleString()}</div></div></div>
+  ${rows.map(r=>`<div class="row"><span>${r.date} &nbsp; ${r.desc} &nbsp; <em style="color:#888">${r.farm}</em></span><span class="${r.cls}">${r.amount>=0?'+':''}₨${Math.abs(r.amount).toLocaleString()} <small>(${r.label})</small></span></div>`).join('')}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
   w.document.close();
 };
 </script>
