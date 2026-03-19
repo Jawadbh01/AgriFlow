@@ -1,13 +1,16 @@
-// AgriFlow Service Worker — minimal, no HTML caching
-const CACHE = 'agriflow-static-v1';
+const CACHE = 'agriflow-static-v2';
 
-// Only cache CSS and images — never HTML
 const STATIC = [
   '/AgriFlow/css/style.css',
   '/AgriFlow/images/icon-192.png',
   '/AgriFlow/images/icon-512.png',
+  '/AgriFlow/index.html',
+  '/AgriFlow/pages/admin.html',
+  '/AgriFlow/pages/landlord.html',
+  '/AgriFlow/pages/manager.html',
 ];
 
+// Install — cache everything
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
@@ -15,6 +18,7 @@ self.addEventListener('install', e => {
   );
 });
 
+// Activate — clear old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
@@ -23,18 +27,30 @@ self.addEventListener('activate', e => {
   );
 });
 
+// Fetch — network first for HTML, cache first for assets
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // NEVER intercept HTML pages — always fresh from network
-  if (e.request.mode === 'navigate') return;
-
-  // NEVER intercept Firebase
+  // Never intercept Firebase
   if (url.hostname.includes('firebase') ||
       url.hostname.includes('google') ||
       url.hostname.includes('gstatic')) return;
 
-  // CSS and images — cache first
+  // HTML — network first, fallback to cache
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // CSS/images — cache first
   if (e.request.destination === 'style' ||
       e.request.destination === 'image') {
     e.respondWith(
