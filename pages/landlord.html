@@ -346,7 +346,15 @@ function showSkeleton(){
   if(g)g.innerHTML=[1,2,3,4].map(()=>`<div class="skeleton-stat"><div class="skeleton skeleton-text" style="width:40px;height:40px;border-radius:10px"></div><div class="skeleton skeleton-text" style="width:60%;margin-top:8px"></div><div class="skeleton skeleton-title" style="width:40%;margin-top:6px"></div></div>`).join('');
 }
 
-async function safeGet(q){try{return await getDocs(q);}catch(e){console.warn('Query:',e.message);return{docs:[]};}}
+async function safeGet(q){
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000));
+    return await Promise.race([getDocs(q),timeout]);
+  }catch(e){
+    console.warn('Query failed:',e.message);
+    return{docs:[]};
+  }
+}
 
 // ── Load All ──────────────────────────────────────────────
 async function loadAll(){
@@ -359,7 +367,7 @@ async function loadAll(){
     safeGet(query(collection(db,'farmers'), where('landlordId','==',lid))),
     safeGet(query(collection(db,'inventory'),where('landlordId','==',lid))),
     safeGet(query(collection(db,'users'),   where('landlordId','==',lid))),
-    safeGet(query(collection(db,'notifications'),where('toUid','==',lid),where('read','==',false))),
+    safeGet(query(collection(db,'notifications'),where('toUid','==',lid))),
   ]);
   myFarms    =fS.docs.map(d=>({id:d.id,...d.data()}));
   myExpenses =eS.docs.map(d=>({id:d.id,...d.data()}));
@@ -367,7 +375,7 @@ async function loadAll(){
   myFarmers  =frS.docs.map(d=>({id:d.id,...d.data()}));
   myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
   myManagers =mS.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.role==='manager');
-  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()}));
+  myNotifs   =nS.docs.map(d=>({id:d.id,...d.data()})).filter(n=>!n.read);
   // populate selects
   const fo=myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
   ['exp-farm'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">Select farm...</option>'+fo;});
