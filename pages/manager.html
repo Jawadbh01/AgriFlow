@@ -387,12 +387,18 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, addDoc, updateDoc, deleteDoc,
+import { getFirestore, initializeFirestore, persistentLocalCache, doc, getDoc, addDoc, updateDoc, deleteDoc,
          collection, getDocs, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
-const app=initializeApp(CONFIG), auth=getAuth(app), db=getFirestore(app);
+const app=initializeApp(CONFIG), auth=getAuth(app);
+let db;
+try {
+  db = initializeFirestore(app, { localCache: persistentLocalCache() });
+} catch(e) {
+  db = getFirestore(app);
+}
 
 // ── State ─────────────────────────────────────────────────
 let ME=null, myFarms=[], myFarmers=[], myExpenses=[], myDebts=[], myHarvests=[], myInventory=[];
