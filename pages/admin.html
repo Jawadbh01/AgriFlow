@@ -293,34 +293,61 @@ function fmtDate(ts){if(!ts)return '—';const d=ts.toDate?ts.toDate():new Date(
 function ini(n){return(n||'?').charAt(0).toUpperCase();}
 
 // ── Logout ────────────────────────────────────────────────
-window.doLogout=async function(){if(!confirm('Logout?'))return;await signOut(auth);window.location.href='../index.html';};
+window.doLogout=async function(){if(!confirm('Logout?'))return;try{localStorage.removeItem('af_user');}catch(e){}await signOut(auth);window.location.href='../index.html';};
 
 // ── Auth Guard ────────────────────────────────────────────
-const _waitForAuth = new Promise(resolve => {
-  const unsub = onAuthStateChanged(auth, user => { unsub(); resolve(user); });
-});
-_waitForAuth.then(async user => {
-  if (!user) { window.location.replace('../index.html'); return; }
-  try {
-    const timeout = new Promise((_,reject) => setTimeout(() => reject(new Error('Connection timeout')), 12000));
-    const snap = await Promise.race([getDoc(doc(db,'users',user.uid)), timeout]);
-    if (!snap.exists()) { loaderErr('Account not found. Contact admin.'); return; }
-    const data = snap.data();
-    if (data.role !== 'admin') { loaderErr('Wrong role: ' + data.role); return; }
-    if (data.status === 'suspended') { loaderErr('Account suspended.'); return; }
-    ME = {uid: user.uid, ...data};
-    document.getElementById('user-name').textContent = ME.name || 'Admin';
-    document.getElementById('user-avatar').textContent = ini(ME.name);
-    showSkeleton();
-    await loadAll();
-    hideLoader();
-  } catch(e) { loaderErr(e.message); }
+const _waitForAuth=new Promise(resolve=>{const u=onAuthStateChanged(auth,user=>{u();resolve(user);});});
+_waitForAuth.then(async user=>{
+  const uid=user?user.uid:null;
+  if(!uid){
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_user')||'null');
+      if(cached&&cached.role==='admin'&&cached.status!=='suspended'){
+        ME=cached;
+        document.getElementById('user-name').textContent=ME.name||'Admin';
+        document.getElementById('user-avatar').textContent=ini(ME.name);
+        showSkeleton();await loadAll();hideLoader();return;
+      }
+    }catch(e){}
+    window.location.replace('../index.html');return;
+  }
+  try{
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timeout')),12000));
+    const snap=await Promise.race([getDoc(doc(db,'users',uid)),timeout]);
+    if(!snap.exists()){loaderErr('Account not found.');return;}
+    const data=snap.data();
+    if(data.role!=='admin'){loaderErr('Wrong role: '+data.role);return;}
+    if(data.status==='suspended'){loaderErr('Account suspended.');return;}
+    ME={uid,...data};
+    try{localStorage.setItem('af_user',JSON.stringify({uid,...data,cachedAt:Date.now()}));}catch(e){}
+    document.getElementById('user-name').textContent=ME.name||'Admin';
+    document.getElementById('user-avatar').textContent=ini(ME.name);
+    showSkeleton();await loadAll();hideLoader();
+  }catch(e){
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_user')||'null');
+      if(cached&&cached.uid===uid&&cached.role==='admin'){
+        ME=cached;
+        document.getElementById('user-name').textContent=ME.name||'Admin';
+        document.getElementById('user-avatar').textContent=ini(ME.name);
+        showSkeleton();await loadAll();hideLoader();return;
+      }
+    }catch(ce){}
+    loaderErr(e.message);
+  }
 });
 
 // ── Load ──────────────────────────────────────────────────
+async function safeGet(q){
+  try{
+    const t=new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),8000));
+    return await Promise.race([getDocs(q),t]);
+  }catch(e){console.warn('Query:',e.message);return{docs:[]};}
+}
+
 async function loadAll(){
   try{
-    const snap=await getDocs(collection(db,'users'));
+    const snap=await safeGet(collection(db,'users'));
     allUsers=snap.docs.map(d=>({uid:d.id,...d.data()}));
     allLandlords=allUsers.filter(u=>u.role==='landlord');
     allManagers=allUsers.filter(u=>u.role==='manager');
