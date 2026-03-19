@@ -269,7 +269,7 @@ import { getFirestore, initializeFirestore, persistentLocalCache,
 const CONFIG={apiKey:"AIzaSyDpTPibk-7_kqyJdfN94KrLlcKkoNnqIYE",authDomain:"farmledger-e85e3.firebaseapp.com",projectId:"farmledger-e85e3",storageBucket:"farmledger-e85e3.firebasestorage.app",messagingSenderId:"922324809308",appId:"1:922324809308:web:05c015ce12e55034e99899"};
 const app=initializeApp(CONFIG);
 const auth=getAuth(app);
-setPersistence(auth,indexedDBLocalPersistence).catch(()=>{});
+setPersistence(auth, indexedDBLocalPersistence).catch(()=>{});
 let db;
 try{db=initializeFirestore(app,{localCache:persistentLocalCache()});}catch(e){db=getFirestore(app);}
 
