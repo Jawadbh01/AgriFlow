@@ -439,4 +439,688 @@ window.toggleLang=function(){
 };
 
 // ── Theme ──────────────────────────────────────────────
-const initTheme=()=>document.documentElement.setAttr
+const initTheme=()=>document.documentElement.setAttribute('data-theme',localStorage.getItem('af_theme')||'dark');
+window.toggleTheme=()=>{const n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('af_theme',n);};
+initTheme();
+currentLang = localStorage.getItem('af_lang')||'en';
+
+// ── Toast ──────────────────────────────────────────────
+function toast(msg,type='success'){
+  const r=document.getElementById('toast-root'),el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✅',error:'❌',warning:'⚠️',info:'ℹ️'}[type]||'✅'}</span><span>${msg}</span>`;
+  r.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),300);},3500);
+}
+
+// ── Alert ──────────────────────────────────────────────
+function setAlert(id,msg,type='error'){const el=document.getElementById(id);if(el){el.textContent=msg;el.className=`alert show ${type}`;}}
+function clrAlert(id){const el=document.getElementById(id);if(el)el.className='alert';}
+
+// ── Loader ─────────────────────────────────────────────
+function hideLoader(){document.getElementById('page-loader').classList.add('hidden');}
+function loaderError(msg){
+  const el=document.getElementById('page-loader');
+  el.innerHTML=`<div style="text-align:center;padding:24px">
+    <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+    <div style="color:var(--danger);font-weight:700;margin-bottom:8px">Error</div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:20px">${msg}</div>
+    <button class="btn btn-outline btn-sm" onclick="location.reload()">🔄 Retry</button>
+  </div>`;
+}
+
+// ── Modal ──────────────────────────────────────────────
+window.openM=id=>document.getElementById(id)?.classList.add('open');
+window.closeM=id=>document.getElementById(id)?.classList.remove('open');
+document.querySelectorAll('.modal-overlay').forEach(m=>
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+
+// ── Pages ──────────────────────────────────────────────
+const PAGE_TITLES={home:'Home',inventory:'Inventory',khata:'Khata',farmers:'Farmers',profile:'Profile'};
+window.switchPage=function(page){
+  document.querySelectorAll('[data-page]').forEach(p=>p.classList.toggle('hidden',p.dataset.page!==page));
+  document.querySelectorAll('[data-page-btn]').forEach(b=>b.classList.toggle('active',b.dataset.pageBtn===page));
+  document.getElementById('page-title').textContent=PAGE_TITLES[page]||page;
+  // Show/hide FAB
+  document.getElementById('fab').style.display=page==='profile'?'none':'flex';
+};
+
+// ── FAB ────────────────────────────────────────────────
+window.openFAB=function(){
+  const page=document.querySelector('[data-page-btn].active')?.dataset.pageBtn||'home';
+  if(page==='inventory') openM('modal-add-inv');
+  else if(page==='farmers') openM('modal-add-farmer');
+  else openM('modal-add-khata');
+};
+
+// ── Sync Status ────────────────────────────────────────
+function setSyncStatus(status,msg=''){
+  const dot=document.getElementById('sync-dot');
+  const bar=document.getElementById('sync-bar');
+  dot.className=`sync-dot ${status}`;
+  if(msg){
+    bar.textContent=msg;
+    bar.className=`sync-bar show ${status}`;
+    setTimeout(()=>bar.classList.remove('show'),3000);
+  }
+}
+
+// ── Offline sync ───────────────────────────────────────
+window.addEventListener('online',async()=>{
+  setSyncStatus('pending','🔄 Syncing...');
+  if(pendingWrites.length===0){setSyncStatus('synced','🟢 '+t('synced'));return;}
+  const toSync=[...pendingWrites]; pendingWrites=[];
+  try{
+    for(const w of toSync){
+      const d={...w.data,createdAt:serverTimestamp()};
+      delete d._offline; delete d._id;
+      await addDoc(collection(db,w.col),d);
+    }
+    localStorage.removeItem('af_pending_mgr');
+    setSyncStatus('synced','🟢 Synced '+toSync.length+' entries!');
+    toast('✅ Synced '+toSync.length+' offline entries');
+    await loadAll();
+  }catch(e){
+    pendingWrites=toSync;
+    setSyncStatus('error','🔴 Sync failed');
+    toast('⚠️ Sync failed: '+e.message,'warning');
+  }
+});
+window.addEventListener('offline',()=>setSyncStatus('offline','📵 '+t('offline')));
+
+// ── Safe Add (offline-capable) ─────────────────────────
+async function safeAdd(colName,data){
+  if(!navigator.onLine){
+    const d={...data,_offline:true,_id:'off_'+Date.now(),createdAt:new Date().toISOString()};
+    pendingWrites.push({col:colName,data:d});
+    try{localStorage.setItem('af_pending_mgr',JSON.stringify(pendingWrites));}catch(e){}
+    // Update local state immediately
+    if(colName==='khata')myKhata.unshift({id:d._id,...d});
+    if(colName==='inventory'){
+      const ex=myInventory.find(i=>i.name.toLowerCase()===data.name?.toLowerCase()&&i.unit===data.unit);
+      if(ex)ex.quantity=Number(ex.quantity||0)+Number(data.quantity||0);
+      else myInventory.push({id:d._id,...d});
+    }
+    if(colName==='farmers')myFarmers.push({id:d._id,...d});
+    // Save cache
+    saveCache();
+    setSyncStatus('pending','🟡 Saved offline');
+    return d;
+  }
+  return await addDoc(collection(db,colName),data);
+}
+
+// ── Cache ──────────────────────────────────────────────
+function saveCache(){
+  try{
+    localStorage.setItem('af_data_mgr',JSON.stringify({
+      farms:myFarms,farmers:myFarmers,khata:myKhata,inventory:myInventory,
+      cachedAt:Date.now()
+    }));
+  }catch(e){}
+}
+function loadCache(){
+  try{
+    const d=JSON.parse(localStorage.getItem('af_data_mgr')||'null');
+    if(d){myFarms=d.farms||[];myFarmers=d.farmers||[];myKhata=d.khata||[];myInventory=d.inventory||[];}
+    return !!d;
+  }catch(e){return false;}
+}
+
+// ── Helpers ────────────────────────────────────────────
+function fmtM(n){return '₨ '+Number(n||0).toLocaleString('en-PK');}
+function fmtD(ts){
+  if(!ts)return '—';
+  if(typeof ts==='string')return new Date(ts).toLocaleDateString('en-PK',{day:'numeric',month:'short'});
+  const d=ts.toDate?ts.toDate():new Date(ts);
+  return d.toLocaleDateString('en-PK',{day:'numeric',month:'short',year:'numeric'});
+}
+function ini(n){return(n||'?').charAt(0).toUpperCase();}
+const CAT_ICON={diesel:'⛽',fertilizer:'🧪',seeds:'🌱',labor:'👷',pesticide:'💊',tractor:'🚜',water:'💧',harvest:'🌾',sale:'💵',cash:'💵',other:'📦',crop:'🌾',tools:'🔧'};
+const TYPE_ICON={expense:'💸',income:'💰',debt_given:'📋',landlord_taken:'🏠',payment:'✅',advance:'📋'};
+
+// ── Logout ─────────────────────────────────────────────
+window.doLogout=async function(){
+  if(!confirm('Logout?'))return;
+  try{localStorage.removeItem('af_user_manager');localStorage.removeItem('af_data_mgr');localStorage.removeItem('af_pending_mgr');}catch(e){}
+  unsubscribers.forEach(u=>u());
+  await signOut(auth);
+  window.location.href='/index.html';
+};
+
+// ── Auth ───────────────────────────────────────────────
+const _wfa=new Promise(r=>{const u=onAuthStateChanged(auth,user=>{u();r(user);});});
+_wfa.then(async user=>{
+  const uid=user?user.uid:null;
+  if(!uid){
+    // Try cache
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_user_manager')||'null');
+      if(cached&&cached.role==='manager'&&cached.status!=='suspended'){
+        ME=cached; applyUI();
+        if(loadCache()){renderAll();hideLoader();}
+        else{document.getElementById('loader-msg').textContent='No cached data';hideLoader();}
+        setSyncStatus('offline','📵 Offline');
+        return;
+      }
+    }catch(e){}
+    window.location.replace('/index.html');return;
+  }
+  try{
+    document.getElementById('loader-msg').textContent='Step 1: Getting user...';
+    const t=new Promise((_,r)=>setTimeout(()=>r(new Error('Firestore timeout — check internet')),10000));
+    const snap=await Promise.race([getDoc(doc(db,'users',uid)),t]);
+    if(!snap.exists()){loaderError('Account not found in database.');return;}
+    const data=snap.data();
+    if(data.role!=='manager'){loaderError('Wrong role: '+data.role+' (need manager)');return;}
+    if(data.status==='suspended'){loaderError('Account suspended. Contact admin.');return;}
+    ME={uid,...data};
+    try{localStorage.setItem('af_user_manager',JSON.stringify({uid,...data,cachedAt:Date.now()}));}catch(e){}
+    applyUI();
+    document.getElementById('loader-msg').textContent='Step 2: Loading data...';
+    await loadAll();
+    hideLoader();
+    setSyncStatus('synced');
+    if(navigator.onLine&&pendingWrites.length>0)window.dispatchEvent(new Event('online'));
+  }catch(e){
+    // Try cache
+    try{
+      const cached=JSON.parse(localStorage.getItem('af_user_manager')||'null');
+      if(cached&&cached.uid===uid&&cached.role==='manager'){
+        ME=cached; applyUI();
+        if(loadCache()){renderAll();hideLoader();setSyncStatus('offline','📵 Offline — cached data');}
+        else loaderError('Error: '+e.message);
+        return;
+      }
+    }catch(ce){}
+    loaderError('Error: '+e.message+' — Try clearing browser cache and login again');
+  }
+});
+
+function applyUI(){
+  document.getElementById('profile-avatar').textContent=ini(ME.name);
+  document.getElementById('profile-name').textContent=ME.name||'Manager';
+  document.getElementById('profile-email').textContent=ME.email||'';
+  document.getElementById('profile-info').innerHTML=`
+    <div class="info-row"><span class="info-label">Role</span><span class="info-value">Manager</span></div>
+    <div class="info-row"><span class="info-label">Pending Sync</span><span class="info-value" style="color:var(--warning)">${pendingWrites.length} entries</span></div>`;
+  document.getElementById('khata-date').value=new Date().toISOString().split('T')[0];
+}
+
+// ── Load All (Firestore) ───────────────────────────────
+async function loadAll(){
+  const mid=ME.uid, lid=ME.landlordId||'';
+  const lm=document.getElementById('loader-msg');
+  if(lm)lm.textContent='Loading farms & data...';
+  const sg=async q=>{try{const t=new Promise((_,r)=>setTimeout(()=>r(new Error('t')),8000));return await Promise.race([getDocs(q),t]);}catch(e){console.warn('Query failed:',e.message);return{docs:[]};}};
+  const [fS,frS,kS,eS]=await Promise.all([
+    sg(query(collection(db,'farms'),where('managerId','==',mid))),
+    sg(query(collection(db,'farmers'),where('managerId','==',mid))),
+    sg(query(collection(db,'khata'),where('managerId','==',mid))),
+    sg(query(collection(db,'expenses'),where('managerId','==',mid))),
+  ]);
+  myFarms   =fS.docs.map(d=>({id:d.id,...d.data()}));
+  myFarmers =frS.docs.map(d=>({id:d.id,...d.data()}));
+  // Merge khata + legacy expenses into one list
+  const khataEntries=kS.docs.map(d=>({id:d.id,...d.data()}));
+  const expEntries=eS.docs.map(d=>({id:d.id,...d.data(),
+    type:d.data().chargedTo==='farmer'?'debt_given':'expense',
+    category:d.data().type||'other'
+  }));
+  const allIds=new Set(khataEntries.map(k=>k.id));
+  const merged=[...khataEntries,...expEntries.filter(e=>!allIds.has(e.id))];
+  myKhata=merged.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+  // Inventory
+  if(lid){
+    const [i1,i2]=await Promise.all([
+      sg(query(collection(db,'inventory'),where('managerId','==',mid))),
+      sg(query(collection(db,'inventory'),where('landlordId','==',lid))),
+    ]);
+    const iMap={};
+    i1.docs.forEach(d=>{iMap[d.id]={id:d.id,...d.data()};});
+    i2.docs.forEach(d=>{iMap[d.id]={id:d.id,...d.data()};});
+    myInventory=Object.values(iMap);
+  }else{
+    const iS=await sg(query(collection(db,'inventory'),where('managerId','==',mid)));
+    myInventory=iS.docs.map(d=>({id:d.id,...d.data()}));
+  }
+  saveCache();
+  populateSelects();
+  renderAll();
+}
+
+function renderAll(){
+  renderHome();renderInventory();renderKhata();renderFarmers(myFarmers);
+}
+
+function populateSelects(){
+  const fo=myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  ['khata-farm','issue-farm','farmer-farm'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.innerHTML='<option value="">Select farm...</option>'+fo;
+  });
+  const kff=document.getElementById('khata-farm-filter');
+  if(kff)kff.innerHTML='<option value="">All Farms</option>'+fo;
+  const fr=document.getElementById('khata-farmer');
+  if(fr)fr.innerHTML='<option value="">Select farmer...</option>'+myFarmers.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+}
+
+// ── Home ───────────────────────────────────────────────
+function renderHome(){
+  const totalExp=myKhata.filter(k=>k.type==='expense'||k.type==='landlord_taken').reduce((s,k)=>s+Number(k.amount||0),0);
+  const totalInc=myKhata.filter(k=>k.type==='income').reduce((s,k)=>s+Number(k.amount||0),0);
+  const totalDebt=myKhata.filter(k=>k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+  const profit=totalInc-totalExp;
+  document.getElementById('home-sub').textContent=`${myFarms.length} farms · ${myFarmers.length} farmers`;
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Income</div><div class="stat-value" style="font-size:18px;color:var(--primary)">${fmtM(totalInc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Expenses</div><div class="stat-value" style="font-size:18px;color:var(--danger)">${fmtM(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Advances</div><div class="stat-value" style="font-size:18px;color:var(--warning)">${fmtM(totalDebt)}</div></div>
+    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Profit</div><div class="stat-value" style="font-size:18px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div></div>`;
+  // Recent khata
+  document.getElementById('recent-khata').innerHTML=myKhata.length===0
+    ?`<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-title">${t('noData')}</div><div class="empty-sub">Add your first khata entry</div></div>`
+    :myKhata.slice(0,5).map(k=>khataRow(k)).join('');
+  // Farms
+  document.getElementById('home-farms').innerHTML=myFarms.length===0
+    ?`<div class="empty-state"><div class="empty-icon">🌱</div><div class="empty-title">${t('noFarms')}</div></div>`
+    :myFarms.map(f=>{
+      const inc=myKhata.filter(k=>k.farmId===f.id&&k.type==='income').reduce((s,k)=>s+Number(k.amount||0),0);
+      const exp=myKhata.filter(k=>k.farmId===f.id&&(k.type==='expense'||k.type==='landlord_taken')).reduce((s,k)=>s+Number(k.amount||0),0);
+      return `<div class="list-row">
+        <div class="avatar avatar-green">${ini(f.name)}</div>
+        <div class="list-body"><div class="list-title">${f.name}</div><div class="list-sub">${f.crop||'No crop'} · ${f.area||'?'} acres</div></div>
+        <div class="list-right"><div class="list-amount" style="color:${inc-exp>=0?'var(--primary)':'var(--danger)'}">${fmtM(inc-exp)}</div><div style="font-size:10px;color:var(--muted)">profit</div></div>
+      </div>`;}).join('');
+}
+
+// ── Inventory ──────────────────────────────────────────
+function renderInventory(){
+  const low=myInventory.filter(i=>Number(i.quantity||0)<=Number(i.minStock||0)&&Number(i.minStock||0)>0).length;
+  document.getElementById('inv-sub').textContent=`${myInventory.length} items · ${low} low stock`;
+  document.getElementById('inv-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-label">Items</div><div class="stat-value">${myInventory.length}</div></div>
+    <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-label">Low Stock</div><div class="stat-value" style="color:var(--warning)">${low}</div></div>`;
+  document.getElementById('inv-list').innerHTML=myInventory.length===0
+    ?`<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">No inventory yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-inv')">➕ Add Stock</button></div>`
+    :myInventory.map(i=>{
+      const isLow=Number(i.quantity||0)<=Number(i.minStock||0)&&Number(i.minStock||0)>0;
+      return `<div class="list-row">
+        <div class="list-icon ${isLow?'bg-debt':'bg-income'}">${CAT_ICON[i.category]||'📦'}</div>
+        <div class="list-body">
+          <div class="list-title">${i.name}${i._offline?' <span class="badge badge-yellow" style="font-size:9px">⏳</span>':''}</div>
+          <div class="list-sub">${i.category||'—'} · ₨${Number(i.pricePerUnit||0).toLocaleString()}/unit</div>
+        </div>
+        <div class="list-right">
+          <div class="list-amount" style="color:${isLow?'var(--warning)':'var(--text)'}">${i.quantity} <span style="font-size:11px;color:var(--muted)">${i.unit}</span></div>
+          <span class="badge ${isLow?'badge-yellow':'badge-green'}" style="font-size:9px">${isLow?'⚠️ Low':'✅ OK'}</span>
+          <div style="margin-top:4px;display:flex;gap:4px;justify-content:flex-end">
+            <button class="btn btn-primary btn-sm" style="padding:4px 8px;font-size:11px" onclick="openIssueModal('${i.id}','${i.name}',${i.quantity},'${i.unit}',${i.pricePerUnit||0})">📤</button>
+            <button class="btn btn-ghost btn-sm" style="padding:4px 8px;font-size:11px" onclick="deleteInv('${i.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>`;}).join('');
+}
+
+// ── Khata ──────────────────────────────────────────────
+function khataRow(k){
+  const farm=myFarms.find(f=>f.id===k.farmId);
+  const farmer=myFarmers.find(f=>f.id===k.farmerId);
+  const isPos=k.type==='income'||k.type==='payment';
+  return `<div class="list-row">
+    <div class="list-icon bg-${k.type==='income'?'income':k.type==='payment'?'payment':k.type==='debt_given'?'advance':k.type==='landlord_taken'?'taken':'expense'}">${TYPE_ICON[k.type]||'📦'} ${CAT_ICON[k.category]||''}</div>
+    <div class="list-body">
+      <div class="list-title">${k.category?.charAt(0).toUpperCase()+k.category?.slice(1)||k.type}${k._offline?' <span class="badge badge-yellow" style="font-size:9px">⏳</span>':''}</div>
+      <div class="list-sub">${farm?.name||'—'}${farmer?' · '+farmer.name:''} · ${fmtD(k.date)}${k.note?' · '+k.note:''}</div>
+      ${k.editedAt?`<div style="font-size:10px;color:var(--muted)">✏️ edited ${fmtD(k.editedAt)}</div>`:''}
+    </div>
+    <div class="list-right">
+      <div class="list-amount" style="color:${isPos?'var(--primary)':'var(--danger)'}">${isPos?'+':'−'}${fmtM(k.amount)}</div>
+      <span class="badge badge-${k.type==='income'?'green':k.type==='payment'?'blue':k.type==='debt_given'||k.type==='landlord_taken'?'yellow':'red'}" style="font-size:9px">${k.type.replace('_',' ')}</span>
+      ${!k._offline?`<div style="margin-top:4px;display:flex;gap:3px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px" onclick="editEntry('${k.id}',${k.amount},'${k.note||''}','${k.date||''}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="padding:3px 7px;font-size:11px" onclick="deleteEntry('${k.id}')">🗑️</button>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+window.renderKhata=function(){
+  const farmF=document.getElementById('khata-farm-filter')?.value||'';
+  const typeF=document.getElementById('khata-type-filter')?.value||'';
+  let list=myKhata;
+  if(farmF)list=list.filter(k=>k.farmId===farmF);
+  if(typeF)list=list.filter(k=>k.type===typeF);
+
+  const totalInc=list.filter(k=>k.type==='income').reduce((s,k)=>s+Number(k.amount||0),0);
+  const totalExp=list.filter(k=>k.type==='expense'||k.type==='landlord_taken').reduce((s,k)=>s+Number(k.amount||0),0);
+  const totalDebt=list.filter(k=>k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+  const profit=totalInc-totalExp;
+
+  document.getElementById('khata-sub').textContent=`${list.length} entries`;
+  document.getElementById('khata-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-label">Income</div><div class="stat-value" style="font-size:16px;color:var(--primary)">${fmtM(totalInc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Expense</div><div class="stat-value" style="font-size:16px;color:var(--danger)">${fmtM(totalExp)}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Advances</div><div class="stat-value" style="font-size:16px;color:var(--warning)">${fmtM(totalDebt)}</div></div>
+    <div class="stat-card"><div class="stat-icon">${profit>=0?'📈':'📉'}</div><div class="stat-label">Profit</div><div class="stat-value" style="font-size:16px;color:${profit>=0?'var(--primary)':'var(--danger)'}">${fmtM(profit)}</div></div>`;
+
+  // Group by date
+  if(list.length===0){
+    document.getElementById('khata-list').innerHTML=`<div class="empty-state"><div class="empty-icon">📒</div><div class="empty-title">${t('noData')}</div><div class="empty-sub">Tap ＋ to add first entry</div></div>`;
+    return;
+  }
+  const grouped={};
+  list.forEach(k=>{const d=k.date||'Unknown';if(!grouped[d])grouped[d]=[];grouped[d].push(k);});
+  document.getElementById('khata-list').innerHTML=Object.keys(grouped)
+    .sort((a,b)=>new Date(b)-new Date(a))
+    .map(date=>`
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:10px 4px 5px">${fmtGroupDate(date)}</div>
+      <div class="card">${grouped[date].map(k=>khataRow(k)).join('')}</div>
+    `).join('');
+};
+
+function fmtGroupDate(d){
+  if(!d||d==='Unknown')return 'Unknown';
+  const dt=new Date(d),today=new Date(),yest=new Date(today);yest.setDate(yest.getDate()-1);
+  if(dt.toDateString()===today.toDateString())return 'Today';
+  if(dt.toDateString()===yest.toDateString())return 'Yesterday';
+  return dt.toLocaleDateString('en-PK',{weekday:'short',day:'numeric',month:'short'});
+}
+
+// ── Farmers ────────────────────────────────────────────
+function renderFarmers(list){
+  document.getElementById('farmers-sub').textContent=`${list.length} farmer${list.length!==1?'s':''}`;
+  document.getElementById('farmers-list').innerHTML=list.length===0
+    ?`<div class="empty-state"><div class="empty-icon">👨‍🌾</div><div class="empty-title">No farmers yet</div><button class="btn btn-primary btn-sm" onclick="openM('modal-add-farmer')">➕ Add Farmer</button></div>`
+    :list.map(f=>{
+      const farm=myFarms.find(fm=>fm.id===f.farmId);
+      const debt=myKhata.filter(k=>k.farmerId===f.id&&k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+      const paid=myKhata.filter(k=>k.farmerId===f.id&&k.type==='payment').reduce((s,k)=>s+Number(k.amount||0),0);
+      const netDebt=Math.max(0,debt-paid);
+      return `<div class="list-row" onclick="viewFarmer('${f.id}')" style="cursor:pointer">
+        <div class="avatar avatar-green">${ini(f.name)}</div>
+        <div class="list-body">
+          <div class="list-title">${f.name}</div>
+          <div class="list-sub">${farm?.name||'—'} · ${f.sharePercentage||50}% share · ${f.phone||'No phone'}</div>
+          ${netDebt>0?`<div style="font-size:11px;color:var(--danger);font-weight:700;margin-top:2px">Debt: ${fmtM(netDebt)}</div>`:''}
+        </div>
+        <div class="list-right"><span class="badge badge-blue">${f.sharePercentage||50}%</span></div>
+      </div>`;}).join('');
+}
+window.filterFarmers=v=>renderFarmers(v?myFarmers.filter(f=>(f.name+(f.phone||'')).toLowerCase().includes(v.toLowerCase())):myFarmers);
+
+window.viewFarmer=function(id){
+  const f=myFarmers.find(x=>x.id===id);if(!f)return;
+  const farm=myFarms.find(fm=>fm.id===f.farmId);
+  const debt=myKhata.filter(k=>k.farmerId===id&&k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+  const paid=myKhata.filter(k=>k.farmerId===id&&k.type==='payment').reduce((s,k)=>s+Number(k.amount||0),0);
+  const netDebt=Math.max(0,debt-paid);
+  const history=myKhata.filter(k=>k.farmerId===id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('farmer-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+      <div class="avatar avatar-green" style="width:56px;height:56px;font-size:22px">${ini(f.name)}</div>
+      <div><div style="font-size:18px;font-weight:800">${f.name}</div><div style="color:var(--muted);font-size:13px">${farm?.name||'—'} · ${f.sharePercentage||50}% share</div></div>
+    </div>
+    <div class="info-list" style="margin-bottom:16px">
+      <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${f.phone||'—'}</span></div>
+      <div class="info-row"><span class="info-label">Total Advances</span><span class="info-value text-danger">${fmtM(debt)}</span></div>
+      <div class="info-row"><span class="info-label">Paid Back</span><span class="info-value text-primary">${fmtM(paid)}</span></div>
+      <div class="info-row"><span class="info-label" style="font-weight:800">Net Debt</span><span class="info-value" style="font-size:16px;font-weight:800;color:${netDebt>0?'var(--danger)':'var(--primary)'}">${fmtM(netDebt)}</span></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">History</div>
+    ${history.length===0?'<div style="color:var(--muted);font-size:13px">No entries</div>':
+      history.slice(0,10).map(k=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div><div style="font-size:13px;font-weight:600">${TYPE_ICON[k.type]} ${k.category||k.type}</div><div style="font-size:11px;color:var(--muted)">${fmtD(k.date)}${k.note?' · '+k.note:''}</div></div>
+        <span style="font-weight:700;font-size:13px;color:${k.type==='income'||k.type==='payment'?'var(--primary)':'var(--danger)'}">${fmtM(k.amount)}</span>
+      </div>`).join('')}
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="closeM('modal-farmer-detail');setKhataType('debt_given');document.getElementById('khata-farmer').value='${id}';openM('modal-add-khata')">+ Advance</button>
+      <button class="btn btn-outline btn-sm" onclick="printFarmerLedger('${id}')">🖨️ Ledger</button>
+    </div>`;
+  openM('modal-farmer-detail');
+};
+
+// ── Khata Type Selector ────────────────────────────────
+window.setKhataType=function(type){
+  document.getElementById('khata-type').value=type;
+  ['expense','income','debt_given','landlord_taken','payment'].forEach(t=>{
+    const btn=document.getElementById('kt-'+t);
+    if(btn)btn.className='toggle-btn'+(t===type?' active-green':'');
+  });
+  const farmerGroup=document.getElementById('khata-farmer-group');
+  farmerGroup.classList.toggle('hidden',type!=='debt_given'&&type!=='payment');
+};
+
+window.loadFarmerDebt=function(){
+  const fid=document.getElementById('khata-farmer').value;
+  if(!fid){document.getElementById('farmer-debt-info').textContent='';return;}
+  const debt=myKhata.filter(k=>k.farmerId===fid&&k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+  const paid=myKhata.filter(k=>k.farmerId===fid&&k.type==='payment').reduce((s,k)=>s+Number(k.amount||0),0);
+  const net=Math.max(0,debt-paid);
+  document.getElementById('farmer-debt-info').textContent=net>0?`Current debt: ${fmtM(net)}`:'No outstanding debt';
+};
+
+window.calcKhata=function(){
+  const q=Number(document.getElementById('khata-qty').value||0);
+  const p=Number(document.getElementById('khata-price').value||0);
+  if(q&&p)document.getElementById('khata-amount').value=q*p;
+};
+
+// ── Add Khata Entry ────────────────────────────────────
+window.addKhataEntry=async function(){
+  const type=document.getElementById('khata-type').value;
+  const farmId=document.getElementById('khata-farm').value;
+  const farmerId=document.getElementById('khata-farmer').value;
+  const category=document.getElementById('khata-category').value;
+  const date=document.getElementById('khata-date').value;
+  const amount=Number(document.getElementById('khata-amount').value||0);
+  const note=document.getElementById('khata-note').value.trim();
+  const qty=Number(document.getElementById('khata-qty').value||0);
+  const price=Number(document.getElementById('khata-price').value||0);
+  const btn=document.getElementById('khata-btn');
+  clrAlert('khata-alert');
+  if(!farmId){setAlert('khata-alert','⚠️ Select a farm.');return;}
+  if(!date){setAlert('khata-alert','⚠️ Date required.');return;}
+  if(!amount){setAlert('khata-alert','⚠️ Amount required.');return;}
+  if((type==='debt_given'||type==='payment')&&!farmerId){setAlert('khata-alert','⚠️ Select a farmer.');return;}
+  btn.disabled=true;btn.textContent='⏳';
+  try{
+    const data={type,farmId,farmerId:farmerId||null,category,date,amount,qty,pricePerUnit:price,note,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()};
+    await safeAdd('khata',data);
+    toast(navigator.onLine?`✅ Entry saved!`:`✅ Saved offline — will sync`);
+    closeM('modal-add-khata');
+    ['khata-amount','khata-qty','khata-price','khata-note'].forEach(id=>document.getElementById(id).value='');
+    setKhataType('expense');
+    if(navigator.onLine)await loadAll(); else renderAll();
+  }catch(e){setAlert('khata-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='✅ Save Entry';
+};
+
+// ── Edit Entry ─────────────────────────────────────────
+window.editEntry=function(id,amount,note,date){
+  document.getElementById('edit-entry-id').value=id;
+  document.getElementById('edit-amount').value=amount;
+  document.getElementById('edit-note').value=note;
+  document.getElementById('edit-date').value=date;
+  clrAlert('edit-alert');
+  openM('modal-edit-entry');
+};
+window.saveEditEntry=async function(){
+  const id=document.getElementById('edit-entry-id').value;
+  const amount=Number(document.getElementById('edit-amount').value||0);
+  const note=document.getElementById('edit-note').value.trim();
+  const date=document.getElementById('edit-date').value;
+  if(!amount){setAlert('edit-alert','⚠️ Amount required.');return;}
+  try{
+    await updateDoc(doc(db,'khata',id),{amount,note,date,editedAt:serverTimestamp(),editedBy:ME.uid});
+    toast('✅ Updated!');closeM('modal-edit-entry');
+    await loadAll();
+  }catch(e){setAlert('edit-alert','❌ '+e.message);}
+};
+
+// ── Add Inventory ──────────────────────────────────────
+window.addInventory=async function(){
+  const name=document.getElementById('inv-name').value.trim();
+  const category=document.getElementById('inv-category').value;
+  const unit=document.getElementById('inv-unit').value;
+  const qty=Number(document.getElementById('inv-qty').value||0);
+  const min=Number(document.getElementById('inv-min').value||0);
+  const price=Number(document.getElementById('inv-price').value||0);
+  const btn=document.getElementById('inv-btn');
+  clrAlert('inv-alert');
+  if(!name||!qty){setAlert('inv-alert','⚠️ Name and quantity required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
+  try{
+    const existing=myInventory.find(i=>i.name.toLowerCase()===name.toLowerCase()&&i.unit===unit&&!i._offline);
+    if(existing){
+      await updateDoc(doc(db,'inventory',existing.id),{quantity:Number(existing.quantity||0)+qty,minStock:min||existing.minStock,pricePerUnit:price||existing.pricePerUnit,updatedAt:serverTimestamp()});
+      toast(`✅ Added ${qty} ${unit} to ${name}`);
+    }else{
+      await safeAdd('inventory',{name,category,unit,quantity:qty,minStock:min,pricePerUnit:price,landlordId:ME.landlordId||'',managerId:ME.uid,createdAt:serverTimestamp()});
+      toast(navigator.onLine?`✅ ${name} added!`:`✅ Saved offline`);
+    }
+    closeM('modal-add-inv');
+    ['inv-name','inv-qty','inv-min','inv-price'].forEach(id=>document.getElementById(id).value='');
+    if(navigator.onLine)await loadAll(); else renderAll();
+  }catch(e){setAlert('inv-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='✅ Add to Stock';
+};
+
+// ── Issue Inventory ────────────────────────────────────
+window.openIssueModal=function(id,name,qty,unit,price){
+  document.getElementById('issue-inv-id').value=id;
+  document.getElementById('issue-item-info').innerHTML=`📦 <strong>${name}</strong> — In stock: <strong style="color:var(--primary)">${qty} ${unit}</strong>`;
+  document.getElementById('issue-qty').value='';
+  document.getElementById('issue-value').value='';
+  clrAlert('issue-alert');
+  setIssueCharge('landlord');
+  // Auto-populate farm/farmer selects
+  const fo=myFarms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  document.getElementById('issue-farm').innerHTML='<option value="">Select farm...</option>'+fo;
+  document.getElementById('issue-farm').classList.remove('hidden');
+  document.getElementById('issue-farm-group').classList.remove('hidden');
+  // Auto calc value
+  document.getElementById('issue-qty').addEventListener('input',function(){
+    if(price)document.getElementById('issue-value').value=Number(this.value||0)*price;
+  });
+  openM('modal-issue-inv');
+};
+window.setIssueCharge=function(val){
+  document.getElementById('issue-charge').value=val;
+  ['landlord','farmer'].forEach(v=>{
+    const btn=document.getElementById('ic-'+v);
+    btn.className='toggle-btn'+(v===val?' active-green':'');
+  });
+  document.getElementById('issue-farmer-group').classList.toggle('hidden',val!=='farmer');
+};
+window.loadFarmFarmers=function(targetId){
+  const farmId=document.getElementById('issue-farm').value;
+  const farmers=myFarmers.filter(f=>f.farmId===farmId);
+  const el=document.getElementById(targetId);
+  if(el)el.innerHTML='<option value="">Select farmer...</option>'+farmers.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+};
+window.issueInventory=async function(){
+  const invId=document.getElementById('issue-inv-id').value;
+  const qty=Number(document.getElementById('issue-qty').value||0);
+  const charge=document.getElementById('issue-charge').value;
+  const farmId=document.getElementById('issue-farm').value;
+  const farmerId=document.getElementById('issue-farmer').value;
+  const value=Number(document.getElementById('issue-value').value||0);
+  const btn=document.getElementById('issue-btn');
+  clrAlert('issue-alert');
+  if(!qty){setAlert('issue-alert','⚠️ Quantity required.');return;}
+  if(!farmId){setAlert('issue-alert','⚠️ Select a farm.');return;}
+  if(charge==='farmer'&&!farmerId){setAlert('issue-alert','⚠️ Select a farmer.');return;}
+  const item=myInventory.find(i=>i.id===invId);
+  if(!item){setAlert('issue-alert','❌ Item not found.');return;}
+  if(qty>Number(item.quantity||0)){setAlert('issue-alert',`⚠️ Only ${item.quantity} ${item.unit} in stock.`);return;}
+  btn.disabled=true;btn.textContent='⏳';
+  try{
+    // Deduct stock
+    await updateDoc(doc(db,'inventory',invId),{quantity:Number(item.quantity||0)-qty,updatedAt:serverTimestamp()});
+    // Create khata entry
+    if(value>0){
+      await safeAdd('khata',{
+        type:charge==='farmer'?'debt_given':'expense',
+        farmId,farmerId:farmerId||null,
+        category:item.category||'other',
+        date:new Date().toISOString().split('T')[0],
+        amount:value,qty,unit:item.unit,
+        note:`Issued: ${item.name}`,
+        managerId:ME.uid,landlordId:ME.landlordId||'',
+        createdAt:serverTimestamp()
+      });
+    }
+    toast(`✅ ${qty} ${item.unit} of ${item.name} issued!`);
+    closeM('modal-issue-inv');
+    if(navigator.onLine)await loadAll(); else renderAll();
+  }catch(e){setAlert('issue-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='📤 Issue';
+};
+
+// ── Add Farmer ─────────────────────────────────────────
+window.addFarmer=async function(){
+  const name=document.getElementById('farmer-name').value.trim();
+  const phone=document.getElementById('farmer-phone').value.trim();
+  const share=document.getElementById('farmer-share').value;
+  const farmId=document.getElementById('farmer-farm').value;
+  const btn=document.getElementById('farmer-btn');
+  clrAlert('farmer-alert');
+  if(!name||!farmId){setAlert('farmer-alert','⚠️ Name and farm required.');return;}
+  btn.disabled=true;btn.textContent='⏳';
+  try{
+    await safeAdd('farmers',{name,phone,sharePercentage:Number(share||50),farmId,managerId:ME.uid,landlordId:ME.landlordId||'',createdAt:serverTimestamp()});
+    toast(`✅ ${name} added!`);closeM('modal-add-farmer');
+    ['farmer-name','farmer-phone'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('farmer-share').value='50';
+    if(navigator.onLine)await loadAll(); else renderAll();
+  }catch(e){setAlert('farmer-alert','❌ '+e.message);}
+  btn.disabled=false;btn.textContent='✅ Add Farmer';
+};
+
+// ── Delete ─────────────────────────────────────────────
+window.deleteEntry=async function(id){
+  if(!confirm('Delete this entry?'))return;
+  try{await deleteDoc(doc(db,'khata',id));toast('🗑️ Deleted','warning');await loadAll();}
+  catch(e){toast('❌ '+e.message,'error');}
+};
+window.deleteInv=async function(id){
+  if(!confirm('Delete this item?'))return;
+  try{await deleteDoc(doc(db,'inventory',id));toast('🗑️ Deleted','warning');await loadAll();}
+  catch(e){toast('❌ '+e.message,'error');}
+};
+
+// ── Print ──────────────────────────────────────────────
+window.printReport=function(){
+  const totalInc=myKhata.filter(k=>k.type==='income').reduce((s,k)=>s+Number(k.amount||0),0);
+  const totalExp=myKhata.filter(k=>k.type==='expense'||k.type==='landlord_taken').reduce((s,k)=>s+Number(k.amount||0),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>AgriFlow Report</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:640px;margin:0 auto}h1{color:#16a34a}h2{color:#166534;font-size:14px;margin-top:16px}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}.sum{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}.box{background:#f0fdf4;padding:10px;border-radius:8px;text-align:center}</style></head><body>
+  <h1>📒 AgriFlow — Khata Report</h1><p>${ME.name} · ${new Date().toLocaleDateString()}</p>
+  <div class="sum"><div class="box"><div style="font-size:9px;color:#666;font-weight:700">INCOME</div><div class="inc" style="font-size:16px;font-weight:800">₨${totalInc.toLocaleString()}</div></div><div class="box"><div style="font-size:9px;color:#666;font-weight:700">EXPENSES</div><div class="exp" style="font-size:16px;font-weight:800">₨${totalExp.toLocaleString()}</div></div><div class="box"><div style="font-size:9px;color:#666;font-weight:700">PROFIT</div><div style="font-size:16px;font-weight:800;color:${totalInc-totalExp>=0?'#16a34a':'#dc2626'}">₨${(totalInc-totalExp).toLocaleString()}</div></div></div>
+  <h2>All Entries</h2>
+  ${myKhata.map(k=>{const farm=myFarms.find(f=>f.id===k.farmId);return `<div class="row"><span>${k.date} — ${k.type} — ${k.category||''}${k.note?' ('+k.note+')':''} — ${farm?.name||'—'}</span><span class="${k.type==='income'||k.type==='payment'?'inc':'exp'}">${k.type==='income'||k.type==='payment'?'+':'−'}₨${Number(k.amount||0).toLocaleString()}</span></div>`}).join('')}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.close();
+};
+window.printFarmerLedger=function(fid){
+  const f=myFarmers.find(x=>x.id===fid);if(!f)return;
+  const entries=myKhata.filter(k=>k.farmerId===fid);
+  const debt=entries.filter(k=>k.type==='debt_given').reduce((s,k)=>s+Number(k.amount||0),0);
+  const paid=entries.filter(k=>k.type==='payment').reduce((s,k)=>s+Number(k.amount||0),0);
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>${f.name} Ledger</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111;max-width:500px;margin:0 auto}h1{color:#16a34a}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.inc{color:#16a34a;font-weight:700}.exp{color:#dc2626;font-weight:700}</style></head><body>
+  <h1>👨‍🌾 ${f.name} — Ledger</h1><p>Total Advance: ₨${debt.toLocaleString()} · Paid: ₨${paid.toLocaleString()} · Net: ₨${Math.max(0,debt-paid).toLocaleString()}</p>
+  ${entries.map(k=>`<div class="row"><span>${k.date} — ${k.type}${k.note?' ('+k.note+')':''}</span><span class="${k.type==='payment'?'inc':'exp'}">₨${Number(k.amount||0).toLocaleString()}</span></div>`).join('')||'<p>No entries</p>'}
+  <script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>`);
+  w.document.close();
+};
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
