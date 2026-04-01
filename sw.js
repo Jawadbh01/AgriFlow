@@ -1,4 +1,4 @@
-const CACHE = 'agriflow-static-v2';
+const CACHE = 'agriflow-static-v3';
 
 const STATIC = [
   '/css/style.css',
